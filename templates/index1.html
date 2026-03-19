@@ -1,0 +1,2070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heritage Procurement Intelligence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #f0f2f0;
+  --surface:  #ffffff;
+  --card:     #ffffff;
+  --hover:    #f7f9f7;
+  --border:   #e2e8e4;
+  --border2:  #d0d8d4;
+  --green:    #1a6b45;
+  --green-lt: #eaf4ee;
+  --green-md: #c2e8cf;
+  --teal:     #0e7b6a;
+  --teal-lt:  #e6f4f2;
+  --blue:     #1d5fa6;
+  --blue-lt:  #e8f0fb;
+  --amber:    #b45309;
+  --amber-lt: #fef3e2;
+  --red:      #c0392b;
+  --red-lt:   #fdecea;
+  --text:     #111c17;
+  --text2:    #3d5248;
+  --muted:    #7a9488;
+  --mono:     'IBM Plex Mono', monospace;
+  --sans:     'IBM Plex Sans', sans-serif;
+  --display:  'Syne', sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13px;
+  min-height: 100vh;
+}
+
+/* ── HEADER ── */
+header {
+  background: var(--green);
+  color: white;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  position: sticky; top: 0; z-index: 200;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+.logo { display:flex; align-items:center; gap:10px; }
+.logo-mark {
+  width:32px; height:32px; background:rgba(255,255,255,0.2);
+  border-radius:8px; display:grid; place-items:center;
+  font-family:var(--display); font-size:15px; font-weight:800; color:white;
+}
+.logo-text { font-family:var(--display); font-size:15px; font-weight:700; letter-spacing:0.01em; }
+.logo-sub  { font-size:10px; opacity:0.7; letter-spacing:0.06em; margin-top:1px; }
+
+.header-right { display:flex; align-items:center; gap:16px; }
+.snap-badge {
+  font-size:11px; opacity:0.8;
+  background:rgba(255,255,255,0.15); padding:4px 12px; border-radius:20px;
+}
+.snap-badge b { opacity:1; }
+
+/* ── GLOBAL FILTERS ── */
+.global-filters {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 28px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  position: sticky; top: 56px; z-index: 150;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.filter-label {
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin-right: 4px;
+}
+
+select {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 12px;
+  padding: 6px 28px 6px 10px;
+  border-radius: 6px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a9488'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  transition: border-color 0.15s;
+}
+select:focus { border-color: var(--green); }
+
+.filter-active-badge {
+  background: var(--green-lt); color: var(--green);
+  border: 1px solid var(--green-md);
+  font-size: 11px; padding: 2px 10px; border-radius: 12px;
+  display: flex; align-items: center; gap: 6px;
+  font-weight: 500;
+}
+
+.btn-clear {
+  background: none; border: 1px solid var(--border2);
+  color: var(--muted); font-family: var(--sans); font-size: 11px;
+  padding: 5px 12px; border-radius: 6px; cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-clear:hover { border-color: var(--red); color: var(--red); background: var(--red-lt); }
+
+/* ── TABS ── */
+nav {
+  background: var(--surface);
+  border-bottom: 2px solid var(--border);
+  padding: 0 28px;
+  display: flex; gap: 0;
+}
+.tab-btn {
+  padding: 12px 20px; background: none; border: none;
+  color: var(--muted); font-family: var(--sans); font-size: 13px;
+  font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent;
+  margin-bottom: -2px; transition: all 0.15s; white-space: nowrap;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--green); border-bottom-color: var(--green); font-weight: 600; }
+
+/* ── CONTENT ── */
+main { padding: 24px 28px; max-width: 1600px; margin: 0 auto; }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+.section-header {
+  display:flex; align-items:baseline; gap:10px; margin-bottom:18px;
+}
+.section-title { font-family:var(--display); font-size:17px; font-weight:700; }
+.section-sub   { color:var(--muted); font-size:11px; }
+
+/* ── KPI GRID ── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px; margin-bottom: 24px;
+}
+.kpi-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  border-top: 3px solid var(--card-accent, var(--green));
+  transition: box-shadow 0.15s;
+}
+.kpi-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+.kpi-label {
+  font-size: 10px; font-weight: 600; color: var(--muted);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px;
+}
+.kpi-value {
+  font-family: var(--display); font-size: 24px; font-weight: 700;
+  color: var(--text); line-height: 1;
+}
+.kpi-sub { margin-top: 7px; font-size: 11px; display:flex; align-items:center; gap:5px; }
+
+/* ── BADGES ── */
+.badge {
+  display:inline-flex; align-items:center; gap:3px;
+  padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 500;
+}
+.badge.up     { background:var(--green-lt); color:var(--green); }
+.badge.down   { background:var(--red-lt);   color:var(--red); }
+.badge.warn   { background:var(--amber-lt); color:var(--amber); }
+.badge.info   { background:var(--blue-lt);  color:var(--blue); }
+.badge.neutral{ background:#f0f0f0; color:#666; }
+
+.tag {
+  display:inline-block; padding:2px 8px; border-radius:4px;
+  font-size:10px; font-weight:600; letter-spacing:0.04em;
+}
+.tag.green  { background:var(--green-lt); color:var(--green); }
+.tag.red    { background:var(--red-lt);   color:var(--red); }
+.tag.amber  { background:var(--amber-lt); color:var(--amber); }
+.tag.blue   { background:var(--blue-lt);  color:var(--blue); }
+.tag.teal   { background:var(--teal-lt);  color:var(--teal); }
+.tag.grey   { background:#f0f0f0; color:#888; }
+
+/* ── CHARTS ── */
+.chart-grid { display:grid; gap:14px; margin-bottom:20px; }
+.chart-grid.cols2 { grid-template-columns:1fr 1fr; }
+.chart-grid.cols3 { grid-template-columns:1fr 1fr 1fr; }
+.chart-grid.wide  { grid-template-columns:3fr 2fr; }
+.chart-grid.wider { grid-template-columns:2fr 1fr; }
+
+.chart-card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:10px; padding:18px;
+}
+.chart-title {
+  font-weight:600; font-size:13px; margin-bottom:14px;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.chart-sub { font-size:10px; color:var(--muted); font-weight:400; }
+.chart-wrap { position:relative; }
+.chart-wrap.h180 { height:180px; }
+.chart-wrap.h220 { height:220px; }
+.chart-wrap.h260 { height:260px; }
+.chart-wrap.h300 { height:300px; }
+
+/* ── TABLES ── */
+.data-table-wrap {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:10px; overflow:hidden; margin-bottom:20px;
+}
+.table-header {
+  padding:14px 18px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  background: var(--hover);
+}
+.table-title { font-weight:600; font-size:13px; }
+.table-controls { display:flex; gap:8px; align-items:center; }
+
+table.dt { width:100%; border-collapse:collapse; }
+table.dt th {
+  padding:9px 14px; text-align:left;
+  font-size:10px; font-weight:600; letter-spacing:0.08em;
+  text-transform:uppercase; color:var(--muted);
+  background:var(--hover); border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+table.dt td {
+  padding:9px 14px; border-bottom:1px solid var(--border);
+  font-size:12px;
+}
+table.dt tr:last-child td { border-bottom:none; }
+table.dt tr:hover td { background:var(--hover); cursor:pointer; }
+
+.scrollable { overflow-y:auto; overflow-x:auto; }
+.scrollable.h400 { max-height:400px; }
+.scrollable.h500 { max-height:500px; }
+.scrollable.h600 { max-height:600px; }
+
+/* ── INSIGHTS ── */
+.insights-grid { display:grid; gap:10px; margin-bottom:24px; }
+
+.insight-card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:10px; padding:16px 18px;
+  border-left:4px solid var(--border);
+  display:flex; gap:14px; align-items:flex-start;
+  transition: box-shadow 0.15s;
+}
+.insight-card:hover { box-shadow:0 2px 10px rgba(0,0,0,0.07); }
+.insight-card.critical { border-left-color:var(--red); }
+.insight-card.warning  { border-left-color:var(--amber); }
+.insight-card.positive { border-left-color:var(--green); }
+
+.insight-icon {
+  width:36px; height:36px; border-radius:8px;
+  display:grid; place-items:center; font-size:16px; flex-shrink:0;
+}
+.insight-card.critical .insight-icon { background:var(--red-lt); }
+.insight-card.warning  .insight-icon { background:var(--amber-lt); }
+.insight-card.positive .insight-icon { background:var(--green-lt); }
+
+.insight-body { flex:1; }
+.insight-category {
+  font-size:10px; font-weight:600; letter-spacing:0.08em;
+  text-transform:uppercase; color:var(--muted); margin-bottom:3px;
+}
+.insight-title { font-weight:600; font-size:13px; margin-bottom:4px; }
+.insight-detail { color:var(--text2); font-size:12px; margin-bottom:8px; line-height:1.5; }
+.insight-action {
+  font-size:11px; color:var(--green); font-weight:500;
+  background:var(--green-lt); padding:5px 10px; border-radius:5px;
+  display:inline-block;
+}
+
+/* ── HPC DETAIL PANEL ── */
+.panel-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.3);
+  z-index:300; display:none;
+}
+.panel-overlay.show { display:block; }
+
+.side-panel {
+  position:fixed; top:0; right:0; bottom:0; width:600px;
+  background:var(--surface); border-left:1px solid var(--border);
+  z-index:301; overflow-y:auto;
+  transform:translateX(100%); transition:transform 0.25s ease;
+  box-shadow:-4px 0 24px rgba(0,0,0,0.1);
+}
+.side-panel.open { transform:translateX(0); }
+.side-panel-inner { padding:24px; }
+.panel-close {
+  position:absolute; top:16px; right:16px;
+  width:32px; height:32px; border-radius:6px;
+  background:var(--bg); border:1px solid var(--border);
+  display:grid; place-items:center; cursor:pointer; font-size:16px;
+  color:var(--muted);
+}
+.panel-close:hover { color:var(--red); border-color:var(--red); }
+
+.panel-name {
+  font-family:var(--display); font-size:20px; font-weight:700;
+  margin-bottom:4px; padding-right:40px;
+}
+.panel-meta { color:var(--muted); font-size:11px; margin-bottom:20px; }
+
+.panel-kpis {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:20px;
+}
+.panel-kpi {
+  background:var(--bg); border:1px solid var(--border);
+  border-radius:8px; padding:10px 12px;
+}
+.panel-kpi .label { font-size:9px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px; }
+.panel-kpi .val   { font-family:var(--display); font-size:17px; font-weight:700; }
+
+.panel-section { margin-bottom:20px; }
+.panel-section-title { font-weight:600; font-size:12px; color:var(--text2); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px; }
+
+/* ── LOADING ── */
+.loading { display:flex; align-items:center; justify-content:center; height:160px; color:var(--muted); gap:10px; }
+.spinner { width:16px; height:16px; border:2px solid var(--border); border-top-color:var(--green); border-radius:50%; animation:spin 0.6s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* ── MISC ── */
+input[type=text] {
+  background:var(--bg); border:1px solid var(--border2); color:var(--text);
+  font-family:var(--sans); font-size:12px; padding:6px 10px; border-radius:6px; outline:none;
+}
+input[type=text]:focus { border-color:var(--green); }
+
+.filter-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
+
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+@media(max-width:900px) {
+  .chart-grid.cols2,.chart-grid.cols3,.chart-grid.wide,.chart-grid.wider { grid-template-columns:1fr; }
+  main,.global-filters,nav,header { padding-left:16px; padding-right:16px; }
+}
+</style>
+</head>
+<body>
+
+  <div id="bootLoader" style="
+  position:fixed; inset:0; background:#f0f2f0;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  z-index:9999; font-family:'IBM Plex Sans',sans-serif;
+">
+  <div style="width:320px; text-align:center;">
+    <div style="font-size:28px; font-weight:800; color:#1a6b45; margin-bottom:4px;">Heritage Foods</div>
+    <div style="font-size:12px; color:#7a9488; letter-spacing:0.08em; margin-bottom:40px;">PROCUREMENT INTELLIGENCE PORTAL</div>
+
+    <div style="background:#fff; border-radius:12px; padding:28px 32px; box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+      <div id="bootSpinner" style="
+        width:36px; height:36px; border:3px solid #e2e8e4;
+        border-top-color:#1a6b45; border-radius:50%;
+        animation:spin 0.8s linear infinite; margin:0 auto 20px;
+      "></div>
+      <div id="bootStep"  style="font-size:13px; font-weight:600; color:#111c17; margin-bottom:6px;">Connecting…</div>
+      <div id="bootDetail" style="font-size:11px; color:#7a9488; min-height:16px;"></div>
+      <div style="margin-top:20px; background:#f0f2f0; border-radius:6px; height:6px; overflow:hidden;">
+        <div id="bootBar" style="height:100%; background:#1a6b45; border-radius:6px; width:0%; transition:width 0.4s ease;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">H</div>
+    <div>
+      <div class="logo-text">Heritage Procurement Intelligence</div>
+      <div class="logo-sub">Live Analytics Portal</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="snap-badge">Data as of <b id="snapDate">—</b></div>
+  </div>
+</header>
+
+<!-- GLOBAL FILTERS -->
+<div class="global-filters">
+  <span class="filter-label">Filters:</span>
+  <select id="gfZone" onchange="applyGlobalFilter()">
+    <option value="">All Zones</option>
+  </select>
+  <select id="gfRegion" onchange="applyGlobalFilter()">
+    <option value="">All Regions</option>
+  </select>
+  <select id="gfPlant" onchange="applyGlobalFilter()">
+    <option value="">All Plants</option>
+  </select>
+  <span id="activeFilterBadge" style="display:none" class="filter-active-badge">
+    <span>⬤</span> <span id="activeFilterText"></span>
+  </span>
+  <button class="btn-clear" id="clearFiltersBtn" onclick="clearFilters()" style="display:none">✕ Clear</button>
+</div>
+
+<nav>
+  <button class="tab-btn active" onclick="switchTab('overview')">📊 Overview</button>
+  <button class="tab-btn" onclick="switchTab('insights')">💡 Insights & Alerts</button>
+  <button class="tab-btn" onclick="switchTab('hpc')">🏭 HPC Drilldown</button>
+  <button class="tab-btn" onclick="switchTab('farmers')">👨‍🌾 Farmer Analytics</button>
+  <button class="tab-btn" onclick="switchTab('quality')">🧪 Quality & Cost</button>
+</nav>
+
+<main>
+
+<!-- ═══════════════════ OVERVIEW ═══ -->
+<div class="tab-panel active" id="tab-overview">
+  <div class="section-header">
+    <div class="section-title">Executive Overview</div>
+    <div class="section-sub">MTD vs LMTD vs LYMTD comparison</div>
+  </div>
+  <div class="kpi-grid" id="ovKpis"><div class="loading"><div class="spinner"></div> Loading…</div></div>
+
+  <div class="chart-grid wide">
+    <div class="chart-card">
+      <div class="chart-title">Daily Procurement Trend <span class="chart-sub">Total litres & farmers</span></div>
+      <div class="chart-wrap h260"><canvas id="cDailyTrend"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Zone Performance <span class="chart-sub">MTD vs LYMTD</span></div>
+      <div class="chart-wrap h260"><canvas id="cZone"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-grid cols3">
+    <div class="chart-card">
+      <div class="chart-title">YoY Growth by Region <span class="chart-sub">%</span></div>
+      <div class="chart-wrap h220"><canvas id="cRegionYoy"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">MTD Volume by Region <span class="chart-sub">litres/day</span></div>
+      <div class="chart-wrap h220"><canvas id="cRegionVol"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">HPC Health Mix <span class="chart-sub">by growth status</span></div>
+      <div class="chart-wrap h220"><canvas id="cHpcHealth"></canvas></div>
+    </div>
+  </div>
+
+  <div class="data-table-wrap">
+    <div class="table-header">
+      <div class="table-title">Region Performance Summary</div>
+    </div>
+    <div class="scrollable h400">
+    <table class="dt">
+      <thead><tr>
+        <th>Region</th><th>Zone</th>
+        <th>MTD LPD</th><th>LMTD</th><th>LYMTD</th>
+        <th>YoY %</th><th>MoM %</th>
+        <th>Farmers</th><th>HPCs</th><th>Dark</th>
+        <th>Avg FAT%</th><th>Payout ₹</th>
+      </tr></thead>
+      <tbody id="tbRegion"></tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ INSIGHTS ═══ -->
+<div class="tab-panel" id="tab-insights">
+  <div class="section-header">
+    <div class="section-title">Insights & Action Items</div>
+    <div class="section-sub">Auto-generated from latest data — sorted by priority</div>
+  </div>
+  <div id="insightsContainer"><div class="loading"><div class="spinner"></div> Analysing data…</div></div>
+</div>
+
+<!-- ═══════════════════ HPC DRILLDOWN ═══ -->
+<div class="tab-panel" id="tab-hpc">
+  <div class="section-header">
+    <div class="section-title">HPC Intelligence</div>
+    <div class="section-sub">Click any row for full HPC detail</div>
+  </div>
+
+  <div class="kpi-grid" id="hpcSummaryKpis" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
+    <div class="loading"><div class="spinner"></div></div>
+  </div>
+
+  <div class="chart-grid cols2" style="margin-bottom:20px">
+    <div class="chart-card">
+      <div class="chart-title">HPC Volume Tiers <span class="chart-sub">by LPD bucket</span></div>
+      <div class="chart-wrap h180"><canvas id="cHpcTiers"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">HPC Growth Segments <span class="chart-sub">by YoY performance</span></div>
+      <div class="chart-wrap h180"><canvas id="cHpcGrowth"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Farmer Health Section -->
+<div id="farmerHealthSection">
+  <div class="section-header" style="margin-top:28px">
+    <div class="section-title">Farmer Retention & Consistency</div>
+    <div class="section-sub">churn, acquisition, consistency by HPC</div>
+  </div>
+
+  <div class="kpi-grid" id="fhKpis"></div>
+
+  <div class="chart-grid cols3">
+    <div class="chart-card">
+      <div class="chart-title">HPC Segments</div>
+      <div class="chart-wrap h220"><canvas id="cFhSegment"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Top 15 — Highest Attrition <span class="chart-sub">% farmers lost vs last month</span></div>
+      <div class="chart-wrap h220"><canvas id="cFhAttrition"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Bottom 15 — Lowest Consistency <span class="chart-sub">% farmers with 25+ days</span></div>
+      <div class="chart-wrap h220"><canvas id="cFhConsistency"></canvas></div>
+    </div>
+  </div>
+
+  <div class="data-table-wrap">
+    <div class="table-header">
+      <div class="table-title">HPC Farmer Health</div>
+      <select id="fhSort" onchange="renderFarmerHealth()" style="font-size:12px;padding:5px 10px">
+        <option value="attrition_pct">Sort: Attrition</option>
+        <option value="churned">Sort: Churned</option>
+        <option value="consistency_pct">Sort: Consistency</option>
+        <option value="total_farmers">Sort: Total Farmers</option>
+        <option value="net_change">Sort: Net Change</option>
+      </select>
+    </div>
+    <div class="scrollable">
+      <table class="dt">
+        <thead><tr>
+          <th>HPC</th><th>Region</th><th>Zone</th><th>Segment</th>
+          <th>Farmers</th><th>Consistent</th><th>Irregular</th><th>Consistency%</th>
+          <th>Churned</th><th>Acquired</th><th>Net</th><th>Attrition%</th>
+        </tr></thead>
+        <tbody id="tbFarmerHealth"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+  <div class="filter-row">
+    <select id="hpcStatusF" onchange="loadHPCList()">
+      <option value="">All Status</option>
+      <option value="star">⭐ Star (YoY>30%)</option>
+      <option value="declining">📉 Declining</option>
+      <option value="critical">🔴 Critical (>30% drop)</option>
+      <option value="dark">⚫ Gone Dark</option>
+    </select>
+    <input type="text" id="hpcSearch" placeholder="Search HPC name / code…" oninput="filterHpcTable()" style="width:220px">
+    <span id="hpcCount" style="color:var(--muted);font-size:11px"></span>
+  </div>
+
+  <div class="data-table-wrap">
+    <div class="scrollable h600">
+    <table class="dt" id="hpcTable">
+      <thead style="position:sticky;top:0;z-index:10">
+      <tr>
+        <th>HPC Name</th><th>Code</th><th>Plant</th><th>Region</th><th>Zone</th>
+        <th>MTD LPD</th><th>LM LPD</th><th>LYMTD</th>
+        <th>YoY%</th><th>MoM%</th>
+        <th>Farmers</th><th>FAT%</th><th>Rate/L</th><th>Status</th>
+      </tr>
+      </thead>
+      <tbody id="tbHpc"></tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ FARMERS ═══ -->
+<div class="tab-panel" id="tab-farmers">
+  <div class="section-header">
+    <div class="section-title">Farmer Analytics</div>
+    <div class="section-sub">Individual farmer performance — latest month</div>
+  </div>
+  <div class="kpi-grid" id="fmrKpis"><div class="loading"><div class="spinner"></div></div></div>
+
+  <div class="chart-grid cols2">
+    <div class="chart-card">
+      <div class="chart-title">Attendance Distribution <span class="chart-sub">delivery days this month</span></div>
+      <div class="chart-wrap h220"><canvas id="cFmrAttendance"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">LPD Distribution <span class="chart-sub">litres per day per farmer</span></div>
+      <div class="chart-wrap h220"><canvas id="cFmrLpd"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-grid wider">
+    <div class="chart-card">
+      <div class="chart-title">Farmer Health by Region <span class="chart-sub">attendance & quality risk</span></div>
+      <div class="chart-wrap h220"><canvas id="cFmrRegion"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Milk Type Mix <span class="chart-sub">cow vs buffalo</span></div>
+      <div class="chart-wrap h220"><canvas id="cMilkType"></canvas></div>
+    </div>
+  </div>
+
+  <div class="data-table-wrap">
+    <div class="table-header">
+      <div class="table-title">Top Farmers — Latest Month</div>
+      <div class="table-controls">
+        <select id="fmrSort" onchange="loadFarmerTable()">
+          <option value="total_qty_ltr">Sort: Total Volume</option>
+          <option value="lpd">Sort: LPD</option>
+          <option value="avg_fat">Sort: FAT%</option>
+          <option value="delivery_days">Sort: Delivery Days</option>
+          <option value="total_net_price">Sort: Payout</option>
+        </select>
+        <select id="fmrRegionF" onchange="loadFarmerTable()">
+          <option value="">All Regions</option>
+        </select>
+      </div>
+    </div>
+    <div class="scrollable h500">
+    <table class="dt">
+      <thead style="position:sticky;top:0;z-index:10"><tr>
+        <th>#</th><th>Farmer Name</th><th>Vendor Code</th>
+        <th>HPC</th><th>Region</th><th>Milk</th>
+        <th>Total Ltr</th><th>LPD</th><th>Days</th>
+        <th>FAT%</th><th>SNF%</th><th>Payout ₹</th><th>₹/L</th><th>Risk</th>
+      </tr></thead>
+      <tbody id="tbFarmers"></tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="data-table-wrap" style="margin-top:20px">
+    <div class="table-header">
+      <div class="table-title">Farmer Health by Region</div>
+    </div>
+    <div class="scrollable">
+    <table class="dt">
+      <thead><tr>
+        <th>Region</th><th>Total Farmers</th>
+        <th>Avg LPD</th><th>Avg FAT%</th><th>Avg Days</th>
+        <th>Consistent (25+)</th><th>Irregular (&lt;10)</th><th>Quality Risk</th>
+        <th>Total Payout ₹</th>
+      </tr></thead>
+      <tbody id="tbFmrRegion"></tbody>
+    </table>
+    <!-- ── FARMER RFM TIERS ── -->
+<div id="farmerRfmSection" style="margin-top:28px">
+  <div class="section-header">
+    <div class="section-title">Farmer Value Tiers (RFM)</div>
+    <div class="section-sub">Recency · Frequency · Monetary — who to protect, grow, and recover</div>
+  </div>
+
+  <div class="kpi-grid" id="rfmKpis"></div>
+
+  <div class="chart-grid cols3" style="margin-bottom:20px">
+    <div class="chart-card">
+      <div class="chart-title">Tier Distribution <span class="chart-sub">farmer count</span></div>
+      <div class="chart-wrap h220"><canvas id="cRfmTiers"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Volume by Tier <span class="chart-sub">total litres</span></div>
+      <div class="chart-wrap h220"><canvas id="cRfmVolume"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Payout by Tier <span class="chart-sub">₹ contribution</span></div>
+      <div class="chart-wrap h220"><canvas id="cRfmPayout"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-grid cols2" style="margin-bottom:20px">
+    <div class="chart-card">
+      <div class="chart-title">Frequency vs Monetary <span class="chart-sub">bubble = volume, colour = tier</span></div>
+      <div class="chart-wrap h260"><canvas id="cRfmScatter"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">RFM Score Distribution <span class="chart-sub">3=low → 9=high</span></div>
+      <div class="chart-wrap h260"><canvas id="cRfmScore"></canvas></div>
+    </div>
+  </div>
+
+  <div class="data-table-wrap">
+    <div class="table-header">
+      <div class="table-title">Farmer RFM Detail</div>
+      <div class="table-controls">
+        <select id="rfmTierF" onchange="renderRfmTable()">
+          <option value="">All Tiers</option>
+          <option value="Champion">🥇 Champion</option>
+          <option value="Loyal">🌱 Loyal</option>
+          <option value="At Risk">⚠️ At Risk</option>
+          <option value="Dormant">💤 Dormant</option>
+          <option value="Churned">🔴 Churned</option>
+        </select>
+        <select id="rfmSort" onchange="renderRfmTable()">
+          <option value="total_payout">Sort: Payout</option>
+          <option value="total_qty_ltr">Sort: Volume</option>
+          <option value="rfm_score">Sort: RFM Score</option>
+          <option value="delivery_days">Sort: Delivery Days</option>
+          <option value="lpd">Sort: LPD</option>
+        </select>
+        <select id="rfmRegionF" onchange="renderRfmTable()">
+          <option value="">All Regions</option>
+        </select>
+      </div>
+    </div>
+    <div class="scrollable h500">
+      <table class="dt">
+        <thead style="position:sticky;top:0;z-index:10"><tr>
+          <th>#</th><th>Farmer</th><th>Code</th><th>HPC</th>
+          <th>Region</th><th>Tier</th>
+          <th>R</th><th>F</th><th>M</th><th>Score</th>
+          <th>Days</th><th>LPD</th><th>Total Ltr</th>
+          <th>Payout ₹</th><th>FAT%</th>
+        </tr></thead>
+        <tbody id="tbRfm"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ QUALITY & COST ═══ -->
+<div class="tab-panel" id="tab-quality">
+  <div class="section-header">
+    <div class="section-title">Quality & Cost Analytics</div>
+    <div class="section-sub">FAT/SNF quality, incidents, incentive ROI, procurement cost</div>
+  </div>
+  <div class="kpi-grid" id="qlKpis"><div class="loading"><div class="spinner"></div></div></div>
+
+  <div class="chart-grid wide">
+    <div class="chart-card">
+      <div class="chart-title">Daily FAT% & SNF% Trend <span class="chart-sub">with incident count</span></div>
+      <div class="chart-wrap h260"><canvas id="cFatTrend"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Quality Incidents <span class="chart-sub">by type</span></div>
+      <div class="chart-wrap h260"><canvas id="cIncidents"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-grid cols3">
+    <div class="chart-card">
+      <div class="chart-title">FAT% by Region <span class="chart-sub">avg weighted</span></div>
+      <div class="chart-wrap h220"><canvas id="cFatRegion"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Incentive Components <span class="chart-sub">₹ by region (stacked)</span></div>
+      <div class="chart-wrap h220"><canvas id="cIncentive"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Cost per Fat-Kg <span class="chart-sub">₹/kg fat by region</span></div>
+      <div class="chart-wrap h220"><canvas id="cCostFatKg"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-grid cols2">
+    <div class="data-table-wrap" style="margin-bottom:0">
+      <div class="table-header"><div class="table-title">Quality & Rate by Region</div></div>
+      <div class="scrollable">
+      <table class="dt">
+        <thead><tr>
+          <th>Region</th><th>FAT%</th><th>SNF%</th>
+          <th>Dumps</th><th>Dump ₹</th>
+          <th>Rate/L</th><th>Cost/FatKg</th><th>Incentive%</th>
+        </tr></thead>
+        <tbody id="tbQlRegion"></tbody>
+      </table>
+      </div>
+    </div>
+    <div class="data-table-wrap" style="margin-bottom:0">
+      <div class="table-header"><div class="table-title">Top Quality Offenders</div></div>
+      <div class="scrollable">
+      <table class="dt">
+        <thead><tr>
+          <th>HPC</th><th>Region</th>
+          <th>Incidents</th><th>Dump ₹</th><th>FAT%</th>
+        </tr></thead>
+        <tbody id="tbOffenders"></tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- Side panel -->
+<div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
+<div class="side-panel" id="sidePanel">
+  <button class="panel-close" onclick="closePanel()">✕</button>
+  <div class="side-panel-inner" id="panelContent">
+    <div class="loading"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<script>
+Chart.defaults.color = '#7a9488';
+Chart.defaults.borderColor = '#e2e8e4';
+Chart.defaults.font.family = "'IBM Plex Sans', sans-serif";
+Chart.defaults.font.size = 11;
+
+const CL = {
+  green: '#1a6b45', teal: '#0e7b6a', blue: '#1d5fa6',
+  amber: '#b45309', red: '#c0392b',
+  green_lt: 'rgba(26,107,69,0.12)', teal_lt: 'rgba(14,123,106,0.12)',
+  blue_lt: 'rgba(29,95,166,0.12)', amber_lt: 'rgba(180,83,9,0.12)',
+  red_lt: 'rgba(192,57,43,0.12)',
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let D       = null;   // all data, loaded once
+let charts  = {};
+let hpcData = [];     // filtered hpc list for the search box
+let gFilters = { zone:'', region:'', plant_code:'' };
+
+// ── FORMAT ────────────────────────────────────────────────────────────────────
+const F = {
+  n:   v => v==null?'—': Number(v).toLocaleString('en-IN',{maximumFractionDigits:0}),
+  f1:  v => v==null?'—': Number(v).toFixed(1),
+  f2:  v => v==null?'—': Number(v).toFixed(2),
+  f3:  v => v==null?'—': Number(v).toFixed(3),
+  pct: v => v==null?'—': (Number(v)*100).toFixed(1)+'%',
+  pr:  v => v==null?'—': Number(v).toFixed(1)+'%',
+  cr:  v => v==null?'—': '₹'+Number(v).toLocaleString('en-IN',{maximumFractionDigits:0}),
+  l:   v => v==null?'—': Number(v).toLocaleString('en-IN',{maximumFractionDigits:0})+'L',
+};
+
+function growthBadge(v, multiply=true) {
+  if(v==null) return '<span class="badge neutral">N/A</span>';
+  const p = multiply ? v*100 : v;
+  const cls = p>=0?'up':'down';
+  return `<span class="badge ${cls}">${p>=0?'+':''}${p.toFixed(1)}%</span>`;
+}
+
+function statusTag(r) {
+  if(!r.mtd || r.mtd==0) return '<span class="tag grey">Dark</span>';
+  const yoy = r.yoy_growth_pct;
+  if(yoy==null || !r.lymtd) return '<span class="tag blue">New</span>';
+  if(yoy < -0.3) return '<span class="tag red">Critical</span>';
+  if(yoy <  0)   return '<span class="tag amber">Declining</span>';
+  if(yoy >= 0.3) return '<span class="tag teal">⭐ Star</span>';
+  return '<span class="tag green">Growing</span>';
+}
+
+function dc(id) { if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
+
+// ── FILTER HELPERS (pure JS, zero network) ────────────────────────────────────
+function filt(arr) {
+  const z=gFilters.zone, r=gFilters.region, p=gFilters.plant_code;
+  if(!z && !r && !p) return arr;
+  return arr.filter(row =>
+    (!z || row.zone       === z) &&
+    (!r || row.region     === r) &&
+    (!p || row.plant_code === p)
+  );
+}
+
+function sumF(arr, k)   { return arr.reduce((s,r) => s+(Number(r[k])||0), 0); }
+function avgF(arr, k)   { const a=arr.filter(r=>r[k]!=null); return a.length ? sumF(a,k)/a.length : null; }
+function minF(arr, k)   { return arr.length ? Math.min(...arr.map(r=>r[k]||999))  : null; }
+function maxF(arr, k)   { return arr.length ? Math.max(...arr.map(r=>r[k]||0))    : null; }
+function wavg(arr, val, w) {
+  const ws = sumF(arr,w);
+  return ws ? arr.reduce((s,r)=>s+(Number(r[val])||0)*(Number(r[w])||0),0)/ws : null;
+}
+function groupBy(arr, key) {
+  return arr.reduce((m,r) => { const k=r[key]; if(!m[k]) m[k]=[]; m[k].push(r); return m; }, {});
+}
+
+// ── GLOBAL FILTERS ────────────────────────────────────────────────────────────
+function populateFilters() {
+  const zs=document.getElementById('gfZone');
+  const rs=document.getElementById('gfRegion');
+  const ps=document.getElementById('gfPlant');
+  D.filters.zones.forEach(z=>{const o=document.createElement('option');o.value=o.textContent=z;zs.appendChild(o);});
+  D.filters.regions.forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;rs.appendChild(o);});
+  D.filters.plants.forEach(p=>{const o=document.createElement('option');o.value=p.code;o.textContent=`${p.name} (${p.code})`;ps.appendChild(o);});
+}
+
+function applyGlobalFilter() {
+  gFilters.zone       = document.getElementById('gfZone').value;
+  gFilters.region     = document.getElementById('gfRegion').value;
+  gFilters.plant_code = document.getElementById('gfPlant').value;
+
+  const active = Object.values(gFilters).some(v=>v);
+  document.getElementById('activeFilterBadge').style.display = active ? 'flex' : 'none';
+  document.getElementById('clearFiltersBtn').style.display   = active ? 'inline-block' : 'none';
+  const parts=[];
+  if(gFilters.zone)       parts.push(gFilters.zone);
+  if(gFilters.region)     parts.push(gFilters.region);
+  if(gFilters.plant_code) parts.push(gFilters.plant_code);
+  document.getElementById('activeFilterText').textContent = parts.join(' › ');
+
+  // Re-render current tab with new filter — no API call
+  const activeTab = document.querySelector('.tab-btn.active').getAttribute('onclick').match(/'(\w+)'/)[1];
+  renderTab(activeTab);
+}
+
+function clearFilters() {
+  document.getElementById('gfZone').value       = '';
+  document.getElementById('gfRegion').value     = '';
+  document.getElementById('gfPlant').value      = '';
+  applyGlobalFilter();
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const t = b.getAttribute('onclick').match(/'(\w+)'/)[1];
+    b.classList.toggle('active', t===name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  if(D) renderTab(name);   // data already loaded — instant render
+}
+
+function renderTab(name) {
+  if(name==='overview') renderOverview();
+  else if(name==='insights') renderInsights();
+  else if(name==='hpc')     { renderHPCSummary(); renderHPCList(); }
+  else if(name==='farmers') renderFarmers();
+  else if(name==='quality') renderQuality();
+}
+
+// ── OVERVIEW ─────────────────────────────────────────────────────────────────
+function renderOverview() {
+  const hpcs     = filt(D.hpc_list);
+  const mhpc     = filt(D.monthly_hpc);
+  const isFiltered = Object.values(gFilters).some(v=>v);
+
+  // KPIs: use pre-computed snapshot for unfiltered, derive from hpc_list when filtered
+  let kpis;
+  if(!isFiltered) {
+    kpis = D.snapshot;
+  } else {
+    const mtd   = sumF(hpcs,'mtd'),   lymtd = sumF(hpcs,'lymtd');
+    const lmtd  = sumF(hpcs,'lmtd'),  lm    = sumF(hpcs,'lm');
+    kpis = {
+      snapshot_date:  D.snapshot.snapshot_date,
+      mtd,  lymtd, lmtd, lm,
+      yoy_pct: lymtd ? +((mtd-lymtd)/lymtd*100).toFixed(1) : 0,
+      mom_pct: lmtd  ? +((mtd-lmtd) /lmtd *100).toFixed(1) : 0,
+      total_farmers:  sumF(hpcs,'mtd_farmers'),
+      lm_farmers:     sumF(hpcs,'lm_farmers'),
+      total_hpcs:     hpcs.length,
+      dark_hpcs:      hpcs.filter(h=>!h.mtd||h.mtd==0).length,
+      star_hpcs:      hpcs.filter(h=>(h.yoy_growth_pct||0)>=0.3  && h.mtd>0).length,
+      critical_hpcs:  hpcs.filter(h=>(h.yoy_growth_pct||0)<-0.2  && h.mtd>0).length,
+      declining_hpcs: hpcs.filter(h=>(h.yoy_growth_pct||0)<0 && (h.yoy_growth_pct||0)>=-0.2 && h.mtd>0).length,
+      avg_fat:  wavg(hpcs.filter(h=>h.mtd_avg_fat>0),'mtd_avg_fat','mtd'),
+      avg_rate: wavg(hpcs.filter(h=>h.mtd_rate>0),   'mtd_rate',   'mtd'),
+      total_payout: sumF(mhpc,'total_net_price'),
+    };
+  }
+
+  document.getElementById('snapDate').textContent = D.snapshot.snapshot_date||'—';
+
+  document.getElementById('ovKpis').innerHTML = [
+    {l:'MTD LPD',        v:F.n(kpis.mtd),           sub:growthBadge(kpis.yoy_pct/100,false)+' YoY',                                                              c:CL.green},
+    {l:'vs Last Month',  v:growthBadge(kpis.mom_pct/100,false), sub:`<span style="color:var(--muted)">MTD vs LMTD</span>`,                                        c:CL.teal},
+    {l:'LYMTD LPD',      v:F.n(kpis.lymtd),          sub:`<span style="color:var(--muted)">Last yr same period</span>`,                                           c:CL.blue},
+    {l:'Active Farmers', v:F.n(kpis.total_farmers),   sub:growthBadge((kpis.total_farmers-kpis.lm_farmers)/Math.max(1,kpis.lm_farmers))+' vs LM',                c:CL.teal},
+    {l:'Total Payout',   v:F.cr(kpis.total_payout),   sub:`<span style="color:var(--muted)">This month</span>`,                                                    c:CL.amber},
+    {l:'Total HPCs',     v:F.n(kpis.total_hpcs),      sub:`<span class="badge warn">${kpis.dark_hpcs} dark</span>`,                                               c:CL.amber},
+    {l:'Star HPCs',      v:F.n(kpis.star_hpcs),       sub:`<span class="badge up">YoY &gt;30%</span>`,                                                            c:CL.green},
+    {l:'Critical HPCs',  v:F.n(kpis.critical_hpcs),   sub:`<span class="badge down">YoY &lt;-30%</span>`,                                                         c:CL.red},
+    {l:'Avg FAT%',       v:F.f3(kpis.avg_fat),        sub:`<span style="color:var(--muted)">Weighted avg</span>`,                                                  c:CL.teal},
+    {l:'Rate/Litre ₹',   v:F.f2(kpis.avg_rate),       sub:`<span style="color:var(--muted)">Avg net price/L</span>`,                                              c:CL.blue},
+  ].map(k=>`<div class="kpi-card" style="--card-accent:${k.c}">
+    <div class="kpi-label">${k.l}</div>
+    <div class="kpi-value">${k.v}</div>
+    <div class="kpi-sub">${k.sub}</div>
+  </div>`).join('');
+
+  // Daily trend: filter by zone/region, then group by date
+  const trendFiltered = filt(D.daily);
+  const trendByDate   = groupBy(trendFiltered,'proc_date');
+  const trend = Object.entries(trendByDate)
+    .sort(([a],[b])=>a.localeCompare(b))
+    .map(([date,rows])=>({ proc_date:date, total_ltr:sumF(rows,'qty_ltr'), farmers:sumF(rows,'farmers') }));
+
+  dc('dailyTrend');
+  charts['dailyTrend'] = new Chart(document.getElementById('cDailyTrend').getContext('2d'),{
+    type:'line', data:{
+      labels: trend.map(r=>r.proc_date.slice(5)),
+      datasets:[
+        {label:'Total LPD', data:trend.map(r=>r.total_ltr), borderColor:CL.green, backgroundColor:CL.green_lt, borderWidth:2, pointRadius:0, fill:true, tension:0.3},
+        {label:'Farmers',   data:trend.map(r=>r.farmers),   borderColor:CL.blue,  borderWidth:1.5, pointRadius:0, fill:false, tension:0.3, yAxisID:'y2'},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      interaction:{intersect:false,mode:'index'},
+      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12}}},
+      scales:{
+        x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{maxTicksLimit:12}},
+        y:{grid:{color:'rgba(0,0,0,0.04)'},title:{display:true,text:'Litres'}},
+        y2:{position:'right',grid:{display:false},title:{display:true,text:'Farmers'}}
+      }}
+  });
+
+  // Zone comparison — aggregate from hpc_list
+  const byZoneMap = groupBy(hpcs,'zone');
+  const zones = Object.entries(byZoneMap)
+    .filter(([z])=>z)
+    .map(([zone,rows])=>({ zone, mtd:sumF(rows,'mtd'), lymtd:sumF(rows,'lymtd') }))
+    .sort((a,b)=>b.mtd-a.mtd);
+
+  dc('zone');
+  charts['zone'] = new Chart(document.getElementById('cZone').getContext('2d'),{
+    type:'bar', data:{
+      labels:zones.map(z=>z.zone),
+      datasets:[
+        {label:'MTD',   data:zones.map(z=>z.mtd),   backgroundColor:CL.green,    borderRadius:4},
+        {label:'LYMTD', data:zones.map(z=>z.lymtd), backgroundColor:CL.green_lt, borderRadius:4, borderWidth:1, borderColor:CL.green},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10}}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.04)'}}}}
+  });
+
+  // Regions — aggregate from hpc_list + monthly_hpc
+  const byRegionMap  = groupBy(hpcs,'region');
+  const mhpcByRegion = groupBy(mhpc,'region');
+  const regions = Object.entries(byRegionMap)
+    .filter(([r])=>r)
+    .map(([region,rows])=>{
+      const mrows = mhpcByRegion[region]||[];
+      const mtd=sumF(rows,'mtd'), ly=sumF(rows,'lymtd'), lmtd=sumF(rows,'lmtd');
+      return {
+        region, zone: rows[0]?.zone||'',
+        mtd, lmtd, lymtd:ly,
+        avg_yoy: ly   ? (mtd-ly)  /ly   : null,
+        avg_mom: lmtd ? (mtd-lmtd)/lmtd : null,
+        farmers:      sumF(rows,'mtd_farmers'),
+        hpcs:         rows.length,
+        dark:         rows.filter(r=>!r.mtd||r.mtd==0).length,
+        avg_fat:      wavg(rows.filter(r=>r.mtd_avg_fat>0),'mtd_avg_fat','mtd'),
+        total_payout: sumF(mrows,'total_net_price'),
+      };
+    }).sort((a,b)=>b.mtd-a.mtd);
+
+  const sortYoy = [...regions].sort((a,b)=>(b.avg_yoy||0)-(a.avg_yoy||0));
+  dc('regionYoy');
+  charts['regionYoy'] = new Chart(document.getElementById('cRegionYoy').getContext('2d'),{
+    type:'bar', data:{
+      labels:sortYoy.map(r=>r.region),
+      datasets:[{label:'Avg YoY%', data:sortYoy.map(r=>r.avg_yoy?r.avg_yoy*100:0),
+        backgroundColor:sortYoy.map(r=>(r.avg_yoy||0)>=0?CL.green:CL.red), borderRadius:3}]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{callback:v=>v+'%'}},y:{grid:{display:false},ticks:{font:{size:10}}}}}
+  });
+
+  const sortVol = [...regions].sort((a,b)=>b.mtd-a.mtd).slice(0,14);
+  dc('regionVol');
+  charts['regionVol'] = new Chart(document.getElementById('cRegionVol').getContext('2d'),{
+    type:'bar', data:{
+      labels:sortVol.map(r=>r.region),
+      datasets:[{label:'MTD LPD', data:sortVol.map(r=>r.mtd), backgroundColor:CL.blue, borderRadius:3}]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'rgba(0,0,0,0.04)'}},y:{grid:{display:false},ticks:{font:{size:10}}}}}
+  });
+
+  dc('hpcHealth');
+  const tot=kpis.total_hpcs||1;
+  charts['hpcHealth'] = new Chart(document.getElementById('cHpcHealth').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:['⭐ Star','Growing','Declining','Critical','Dark'],
+      datasets:[{data:[kpis.star_hpcs, tot-kpis.star_hpcs-(kpis.declining_hpcs||0)-kpis.critical_hpcs-kpis.dark_hpcs, kpis.declining_hpcs||0, kpis.critical_hpcs, kpis.dark_hpcs],
+        backgroundColor:[CL.teal,CL.green,CL.amber,CL.red,'#bbb'], borderWidth:2, borderColor:'#fff'}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
+      plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:10,font:{size:10}}},
+        tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${F.n(ctx.raw)} HPCs`}}}}
+  });
+
+  document.getElementById('tbRegion').innerHTML = regions.map(r=>`
+    <tr>
+      <td><b>${r.region}</b></td>
+      <td><span style="color:var(--muted)">${r.zone}</span></td>
+      <td><b>${F.n(r.mtd)}</b></td>
+      <td>${F.n(r.lmtd)}</td>
+      <td>${F.n(r.lymtd)}</td>
+      <td>${growthBadge(r.avg_yoy)}</td>
+      <td>${growthBadge(r.avg_mom)}</td>
+      <td>${F.n(r.farmers)}</td>
+      <td>${F.n(r.hpcs)}</td>
+      <td>${r.dark>0?`<span class="badge down">${r.dark}</span>`:'<span style="color:var(--muted)">0</span>'}</td>
+      <td style="color:var(--amber)">${F.f3(r.avg_fat)}</td>
+      <td>${F.cr(r.total_payout)}</td>
+    </tr>`).join('');
+}
+
+// ── INSIGHTS ─────────────────────────────────────────────────────────────────
+function renderInsights() {
+  // Insights are pre-computed server-side; filter by zone/region if they carry those fields
+  const data = filt(D.insights);
+  const icons = { critical:'🚨', warning:'⚠️', positive:'✅' };
+
+  if(!data.length) {
+    document.getElementById('insightsContainer').innerHTML = '<div class="loading">No insights found for current filters.</div>';
+    return;
+  }
+
+  document.getElementById('insightsContainer').innerHTML = `
+    <div style="margin-bottom:12px; color:var(--muted); font-size:12px">
+      ${data.length} insights — ${data.filter(d=>d.priority==='critical').length} critical,
+      ${data.filter(d=>d.priority==='warning').length} warnings,
+      ${data.filter(d=>d.priority==='positive').length} positive
+    </div>
+    <div class="insights-grid">
+      ${data.map(i=>`
+        <div class="insight-card ${i.priority}">
+          <div class="insight-icon">${icons[i.priority]||'ℹ️'}</div>
+          <div class="insight-body">
+            <div class="insight-category">${i.category}</div>
+            <div class="insight-title">${i.title}</div>
+            <div class="insight-detail">${i.detail}</div>
+            <div class="insight-action">→ ${i.action}</div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+// ── HPC ───────────────────────────────────────────────────────────────────────
+function renderHPCSummary() {
+  const hpcs = filt(D.hpc_list);
+
+  const t = {
+    large:  hpcs.filter(h=>h.mtd>=500).length,
+    medium: hpcs.filter(h=>h.mtd>=200&&h.mtd<500).length,
+    small:  hpcs.filter(h=>h.mtd>=50 &&h.mtd<200).length,
+    micro:  hpcs.filter(h=>h.mtd>0   &&h.mtd<50 ).length,
+    dark:   hpcs.filter(h=>!h.mtd||h.mtd==0).length,
+  };
+  const g = {
+    star:     hpcs.filter(h=>(h.yoy_growth_pct||0)>=0.3&&h.mtd>0).length,
+    growing:  hpcs.filter(h=>(h.yoy_growth_pct||0)>=0&&(h.yoy_growth_pct||0)<0.3&&h.mtd>0).length,
+    watch:    hpcs.filter(h=>(h.yoy_growth_pct||0)<0&&(h.yoy_growth_pct||0)>=-0.3).length,
+    critical: hpcs.filter(h=>(h.yoy_growth_pct||0)<-0.3).length,
+    dark:     t.dark,
+  };
+
+  document.getElementById('hpcSummaryKpis').innerHTML = [
+    {l:'Total HPCs',          v:F.n(hpcs.length), c:CL.green},
+    {l:'Large (500+L/d)',     v:F.n(t.large),      c:CL.teal},
+    {l:'Medium (200–500)',    v:F.n(t.medium),     c:CL.blue},
+    {l:'Small (50–200)',      v:F.n(t.small),      c:CL.amber},
+    {l:'Micro (&lt;50)',      v:F.n(t.micro),      c:CL.amber},
+    {l:'Gone Dark',           v:F.n(t.dark),       c:CL.red},
+    {l:'⭐ Star (YoY>30%)',   v:F.n(g.star),       c:CL.teal},
+    {l:'Critical (&lt;-30%)', v:F.n(g.critical),   c:CL.red},
+  ].map(k=>`<div class="kpi-card" style="--card-accent:${k.c}">
+    <div class="kpi-label">${k.l}</div>
+    <div class="kpi-value">${k.v}</div></div>`).join('');
+
+  dc('hpcTiers');
+  charts['hpcTiers'] = new Chart(document.getElementById('cHpcTiers').getContext('2d'),{
+    type:'bar',
+    data:{labels:['Large\n(500+)','Medium\n(200–500)','Small\n(50–200)','Micro\n(<50)','Dark'],
+      datasets:[{data:[t.large,t.medium,t.small,t.micro,t.dark],
+        backgroundColor:[CL.teal,CL.green,CL.blue,CL.amber,CL.red], borderRadius:4}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.04)'}}}}
+  });
+
+  dc('hpcGrowth');
+  charts['hpcGrowth'] = new Chart(document.getElementById('cHpcGrowth').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:['⭐ Star','Growing','Watch','Critical','Dark'],
+      datasets:[{data:[g.star,g.growing,g.watch,g.critical,g.dark],
+        backgroundColor:[CL.teal,CL.green,CL.amber,CL.red,'#ccc'], borderWidth:2, borderColor:'#fff'}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'55%',
+      plugins:{legend:{position:'right',labels:{boxWidth:10,padding:8,font:{size:10}}},
+        tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${F.n(ctx.raw)}`}}}}
+  });
+
+  renderFarmerHealth();
+}
+
+function renderHPCList() {
+  const statusFilter = document.getElementById('hpcStatusF').value;
+  let hpcs = filt(D.hpc_list);
+
+  if(statusFilter) hpcs = hpcs.filter(h=>{
+    if(statusFilter==='dark')     return !h.mtd||h.mtd==0;
+    if(statusFilter==='star')     return (h.yoy_growth_pct||0)>=0.3&&h.mtd>0;
+    if(statusFilter==='critical') return (h.yoy_growth_pct||0)<-0.3;
+    if(statusFilter==='growing')  return (h.yoy_growth_pct||0)>=0&&(h.yoy_growth_pct||0)<0.3&&h.mtd>0;
+    if(statusFilter==='declining')return (h.yoy_growth_pct||0)<0&&(h.yoy_growth_pct||0)>=-0.3;
+    return true;
+  });
+
+  hpcData = hpcs;
+  document.getElementById('hpcCount').textContent = `${hpcData.length.toLocaleString()} HPCs`;
+  filterHpcTable();
+}
+
+function filterHpcTable() {
+  const q = document.getElementById('hpcSearch').value.toLowerCase();
+  const data = q ? hpcData.filter(r=>(r.hpc_name||'').toLowerCase().includes(q)||(r.hpc_plant_key||'').toLowerCase().includes(q)) : hpcData;
+  renderHpcTable(data);
+}
+
+function renderHpcTable(data) {
+  document.getElementById('tbHpc').innerHTML = data.map(r=>`
+    <tr onclick="openPanel('${r.hpc_plant_key}')">
+      <td><b>${r.hpc_name||'—'}</b></td>
+      <td style="color:var(--muted);font-family:var(--mono);font-size:11px">${r.hpc_plant_key}</td>
+      <td style="color:var(--muted)">${r.plant_name||'—'}</td>
+      <td>${r.region||'—'}</td><td>${r.zone||'—'}</td>
+      <td><b>${F.n(r.mtd)}</b></td>
+      <td>${F.n(r.lm)}</td>
+      <td>${F.n(r.lymtd)}</td>
+      <td>${growthBadge(r.yoy_growth_pct)}</td>
+      <td>${growthBadge(r.mom_growth_pct)}</td>
+      <td>${F.n(r.mtd_farmers)}</td>
+      <td style="color:var(--amber)">${F.f3(r.mtd_avg_fat)}</td>
+      <td>₹${F.f2(r.mtd_rate)}</td>
+      <td>${statusTag(r)}</td>
+    </tr>`).join('') || '<tr><td colspan="14" style="text-align:center;padding:24px;color:var(--muted)">No HPCs found</td></tr>';
+}
+
+// Panel still fetches fresh — that's correct (it's a drill-down with daily data)
+async function openPanel(key) {
+  document.getElementById('panelOverlay').classList.add('show');
+  document.getElementById('sidePanel').classList.add('open');
+  document.getElementById('panelContent').innerHTML = '<div class="loading"><div class="spinner"></div> Loading…</div>';
+
+  // Use cached snapshot data for summary KPIs — no wait
+  const info = D.hpc_list.find(h=>h.hpc_plant_key===key) || {};
+
+  // Fetch only the daily drill-down (can't cache all daily data per HPC)
+  const d = await fetch(`/api/hpc/detail?hpc_plant_key=${encodeURIComponent(key)}`).then(r=>r.json());
+
+  document.getElementById('panelContent').innerHTML = `
+    <div class="panel-name">${info.hpc_name||key}</div>
+    <div class="panel-meta">Plant: ${info.plant_name||'—'} &nbsp;·&nbsp; ${info.region||'—'} &nbsp;·&nbsp; ${info.zone||'—'}</div>
+    <div class="panel-kpis">
+      ${[
+        {l:'MTD LPD',  v:F.n(info.mtd),                                                                                                                                                    c:CL.green},
+        {l:'YoY',      v:info.yoy_growth_pct!=null?(info.yoy_growth_pct*100).toFixed(1)+'%':'—', c:(info.yoy_growth_pct||0)>=0?CL.green:CL.red},
+        {l:'MoM',      v:info.mom_growth_pct!=null?(info.mom_growth_pct*100).toFixed(1)+'%':'—', c:(info.mom_growth_pct||0)>=0?CL.green:CL.red},
+        {l:'Farmers',  v:F.n(info.mtd_farmers), c:CL.blue},
+        {l:'FAT%',     v:F.f3(info.mtd_avg_fat), c:CL.amber},
+        {l:'Rate/L ₹', v:F.f2(info.mtd_rate),   c:CL.teal},
+      ].map(k=>`<div class="panel-kpi"><div class="label">${k.l}</div><div class="val" style="color:${k.c}">${k.v}</div></div>`).join('')}
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Daily Volume</div>
+      <div style="height:140px"><canvas id="pdVol"></canvas></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Daily FAT%</div>
+      <div style="height:120px"><canvas id="pdFat"></canvas></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Top Farmers this Month</div>
+      <table class="dt">
+        <thead><tr><th>Farmer</th><th>LPD</th><th>Days</th><th>FAT%</th><th>Payout</th></tr></thead>
+        <tbody>${(d.top_farmers||[]).map(f=>`
+          <tr><td>${f.farmer_name||f.farmer_code}</td>
+          <td>${F.f1(f.lpd)}</td><td>${f.delivery_days}</td>
+          <td style="color:var(--amber)">${F.f3(f.avg_fat)}</td>
+          <td>${F.cr(f.payout)}</td></tr>`).join('')||'<tr><td colspan="5" style="color:var(--muted);text-align:center">No data</td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+
+  dc('pdVol');
+  charts['pdVol'] = new Chart(document.getElementById('pdVol').getContext('2d'),{
+    type:'bar',
+    data:{labels:d.daily.map(r=>r.proc_date?.slice(5)),
+      datasets:[{data:d.daily.map(r=>r.qty_ltr), backgroundColor:CL.green_lt, borderColor:CL.green, borderWidth:1, borderRadius:2}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{maxTicksLimit:10,font:{size:9}}},y:{grid:{color:'rgba(0,0,0,0.04)'}}}}
+  });
+
+  dc('pdFat');
+  charts['pdFat'] = new Chart(document.getElementById('pdFat').getContext('2d'),{
+    type:'line',
+    data:{labels:d.daily.map(r=>r.proc_date?.slice(5)),
+      datasets:[{label:'FAT%', data:d.daily.map(r=>r.avg_fat), borderColor:CL.amber, borderWidth:2, pointRadius:0, tension:0.3}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{maxTicksLimit:10,font:{size:9}}},y:{grid:{color:'rgba(0,0,0,0.04)'}}}}
+  });
+}
+
+function closePanel() {
+  document.getElementById('panelOverlay').classList.remove('show');
+  document.getElementById('sidePanel').classList.remove('open');
+}
+
+// ── FARMERS ───────────────────────────────────────────────────────────────────
+function renderFarmers() {
+  const farmers = filt(D.monthly_farmer);
+
+  const consistent = farmers.filter(f=>f.delivery_days>=25).length;
+  const irregular  = farmers.filter(f=>f.delivery_days<10).length;
+  const qRisk = farmers.filter(f=>(f.quality_risk||0)>0).length;
+
+  document.getElementById('fmrKpis').innerHTML = [
+    {l:'Total Farmers',   v:F.n(farmers.length),                         sub:'Active this month',                                                                   c:CL.green},
+    {l:'Total Volume',    v:F.l(sumF(farmers,'total_qty_ltr')),           sub:'Collective procurement',                                                              c:CL.blue},
+    {l:'Avg LPD/Farmer',  v:F.f1(avgF(farmers,'lpd')),                   sub:'Per farmer per day',                                                                  c:CL.teal},
+    {l:'Avg FAT%',        v:F.f3(wavg(farmers,'avg_fat','total_qty_ltr')),sub:'All farmers',                                                                        c:CL.amber},
+    {l:'Consistent 25+d', v:F.n(consistent),                              sub:`${farmers.length?((consistent/farmers.length)*100).toFixed(0):0}% of total`,        c:CL.green},
+    {l:'Irregular <10d',  v:F.n(irregular),                               sub:'Attendance risk',                                                                    c:CL.red},
+    {l:'Quality Risk',    v:F.n(qRisk),                                   sub:'Have dump incidents',                                                                c:CL.amber},
+    {l:'Total Payout',    v:F.cr(sumF(farmers,'total_net_price')),        sub:'This month',                                                                         c:CL.teal},
+  ].map(k=>`<div class="kpi-card" style="--card-accent:${k.c}">
+    <div class="kpi-label">${k.l}</div>
+    <div class="kpi-value">${k.v}</div>
+    <div class="kpi-sub"><span style="color:var(--muted)">${k.sub}</span></div>
+  </div>`).join('');
+
+  // Attendance distribution
+  const attBuckets=[
+    {label:'1–5d',   min:1, max:5},
+    {label:'6–10d',  min:6, max:10},
+    {label:'11–15d', min:11,max:15},
+    {label:'16–20d', min:16,max:20},
+    {label:'21–25d', min:21,max:25},
+    {label:'26+d',   min:26,max:99},
+  ];
+  const attData = attBuckets.map(b=>({
+    bucket:  b.label,
+    farmers: farmers.filter(f=>f.delivery_days>=b.min&&f.delivery_days<=b.max).length,
+  }));
+
+  dc('fmrAttend');
+  charts['fmrAttend'] = new Chart(document.getElementById('cFmrAttendance').getContext('2d'),{
+    type:'bar',
+    data:{labels:attData.map(r=>r.bucket),
+      datasets:[{label:'Farmers', data:attData.map(r=>r.farmers),
+        backgroundColor:[CL.red,CL.red,CL.amber,CL.amber,CL.green,CL.teal], borderRadius:4}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.04)'}}}}
+  });
+
+  // LPD distribution
+  const lpdBuckets=[
+    {label:'<5L',    min:0, max:5},
+    {label:'5–10L',  min:5, max:10},
+    {label:'10–20L', min:10,max:20},
+    {label:'20–50L', min:20,max:50},
+    {label:'50+L',   min:50,max:Infinity},
+  ];
+  const lpdData = lpdBuckets.map(b=>({
+    bucket:    b.label,
+    farmers:   farmers.filter(f=>f.lpd>=b.min&&f.lpd<b.max).length,
+    total_ltr: sumF(farmers.filter(f=>f.lpd>=b.min&&f.lpd<b.max),'total_qty_ltr'),
+  }));
+
+  dc('fmrLpd');
+  charts['fmrLpd'] = new Chart(document.getElementById('cFmrLpd').getContext('2d'),{
+    type:'bar',
+    data:{labels:lpdData.map(r=>r.bucket),
+      datasets:[
+        {label:'Farmers',   data:lpdData.map(r=>r.farmers),   backgroundColor:CL.blue,    borderRadius:4, yAxisID:'y'},
+        {label:'Total Ltr', data:lpdData.map(r=>r.total_ltr), backgroundColor:CL.blue_lt, borderRadius:4, yAxisID:'y2', borderWidth:1, borderColor:CL.blue},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10}}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.04)'},title:{display:true,text:'Farmers'}},
+        y2:{position:'right',grid:{display:false},title:{display:true,text:'Litres'}}}}
+  });
+
+  // Farmers by region
+  const byRegionMap = groupBy(farmers,'region');
+  const byRegion = Object.entries(byRegionMap)
+    .filter(([r])=>r)
+    .map(([region,rows])=>({
+      region,
+      farmer_count: rows.length,
+      avg_lpd:      avgF(rows,'lpd'),
+      avg_fat:      wavg(rows,'avg_fat','total_qty_ltr'),
+      avg_days:     avgF(rows,'delivery_days'),
+      consistent:   rows.filter(f=>f.delivery_days>=25).length,
+      irregular:    rows.filter(f=>f.delivery_days<10).length,
+      quality_risk: rows.filter(f=>(f.quality_risk||0)>0).length,
+      payout:       sumF(rows,'total_net_price'),
+    })).sort((a,b)=>b.farmer_count-a.farmer_count);
+
+  dc('fmrRegion');
+  charts['fmrRegion'] = new Chart(document.getElementById('cFmrRegion').getContext('2d'),{
+    type:'bar',
+    data:{labels:byRegion.map(r=>r.region),
+      datasets:[
+        {label:'Total',      data:byRegion.map(r=>r.farmer_count), backgroundColor:CL.green,  borderRadius:3},
+        {label:'Consistent', data:byRegion.map(r=>r.consistent),   backgroundColor:CL.teal,   borderRadius:3},
+        {label:'Irregular',  data:byRegion.map(r=>r.irregular),    backgroundColor:CL.red,    borderRadius:3},
+      ]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:8}}},
+      scales:{x:{grid:{color:'rgba(0,0,0,0.04)'}},y:{grid:{display:false},ticks:{font:{size:10}}}}}
+  });
+
+  // Milk type donut
+  dc('milkType');
+  charts['milkType'] = new Chart(document.getElementById('cMilkType').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:['CGM (Cow)','BGM (Buffalo)','Other'],
+      datasets:[{data:[
+  sumF(farmers.filter(f=>f.milk_type==='CGM'), 'total_qty_ltr'),
+  sumF(farmers.filter(f=>f.milk_type==='BGM'), 'total_qty_ltr'),
+  sumF(farmers.filter(f=>f.milk_type!=='CGM'&&f.milk_type!=='BGM'), 'total_qty_ltr'),
+], backgroundColor:[CL.green,CL.teal,CL.blue], borderWidth:2, borderColor:'#fff'}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'55%',
+      plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:10}},
+        tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${F.n(ctx.raw)}`}}}}
+  });
+
+  // Populate region filter (once only)
+  const sel=document.getElementById('fmrRegionF');
+  if(sel.options.length===1) {
+    byRegion.forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r.region;sel.appendChild(o);});
+  }
+
+  document.getElementById('tbFmrRegion').innerHTML = byRegion.map(r=>`
+    <tr>
+      <td><b>${r.region}</b></td>
+      <td>${F.n(r.farmer_count)}</td>
+      <td>${F.f1(r.avg_lpd)}</td>
+      <td style="color:var(--amber)">${F.f3(r.avg_fat)}</td>
+      <td>${F.f1(r.avg_days)}</td>
+      <td><span class="badge up">${F.n(r.consistent)}</span></td>
+      <td>${r.irregular>0?`<span class="badge down">${F.n(r.irregular)}</span>`:F.n(r.irregular)}</td>
+      <td>${r.quality_risk>0?`<span class="badge warn">${F.n(r.quality_risk)}</span>`:F.n(r.quality_risk)}</td>
+      <td>${F.cr(r.payout)}</td>
+    </tr>`).join('');
+
+  renderFarmerTable();
+  renderRfm()
+}
+
+function renderFarmerTable() {
+  const sort   = document.getElementById('fmrSort').value;
+  const region = document.getElementById('fmrRegionF').value;
+  let farmers  = filt(D.monthly_farmer);
+  if(region) farmers = farmers.filter(f=>f.region===region);
+  farmers = [...farmers].sort((a,b)=>(b[sort]||0)-(a[sort]||0)).slice(0,200);
+
+  document.getElementById('tbFarmers').innerHTML = farmers.map((r,i)=>`
+    <tr>
+      <td style="color:var(--muted);font-size:11px">${i+1}</td>
+      <td><b>${r.farmer_name||'—'}</b></td>
+      <td style="color:var(--muted);font-family:var(--mono);font-size:10px">${r.farmer_code}</td>
+      <td>${r.hpc_plant_key}</td>
+      <td>${r.region||'—'}</td>
+      <td><span class="tag ${r.milk_type==='CGM'?'green':'teal'}">${r.milk_type||'—'}</span></td>
+      <td>${F.n(r.total_qty_ltr)}</td>
+      <td><b>${F.f1(r.lpd)}</b></td>
+      <td>${r.delivery_days}<span style="color:var(--muted)">/28</span></td>
+      <td style="color:var(--amber)">${F.f3(r.avg_fat)}</td>
+      <td>${F.f3(r.avg_snf)}</td>
+      <td>${F.cr(r.total_net_price)}</td>
+      <td>₹${F.f2(r.avg_rate_per_ltr)}</td>
+      <td>${r.quality_risk>0?`<span class="badge warn">${r.quality_risk} incidents</span>`:'<span style="color:var(--muted)">—</span>'}</td>
+    </tr>`).join('');
+}
+
+// ── QUALITY ───────────────────────────────────────────────────────────────────
+function renderQuality() {
+  const mhpc      = filt(D.monthly_hpc);
+  const incidents = filt(D.quality_incidents);
+
+  // Aggregate quality KPIs from filtered monthly_hpc rows
+  const fs = {
+    avg_fat:          wavg(mhpc,'avg_fat','total_qty_ltr'),
+    avg_snf:          wavg(mhpc,'avg_snf','total_qty_ltr'),
+    min_fat:          minF(mhpc,'avg_fat'),
+    max_fat:          maxF(mhpc,'avg_fat'),
+    dumps:            sumF(mhpc,'dumping_incidents'),
+    dump_value:       null,
+    mcc:              sumF(mhpc,'total_mcc_incentive'),
+    qty_inc:          sumF(mhpc,'total_qty_incentive'),
+    bonus:            sumF(mhpc,'total_bonus'),
+    net:              sumF(mhpc,'total_net_price'),
+    avg_incentive_pct:avgF(mhpc,'incentive_pct'),
+    avg_cost_fat_kg:  avgF(mhpc,'avg_cost_per_fat_kg'),
+    morning_ltr:      sumF(mhpc,'morning_ltr'),
+    evening_ltr:      sumF(mhpc,'evening_ltr'),
+  };
+
+  document.getElementById('qlKpis').innerHTML = [
+    {l:'Avg FAT%',        v:F.f3(fs.avg_fat),  sub:`Range: ${F.f3(fs.min_fat)}–${F.f3(fs.max_fat)}`, c:CL.amber},
+    {l:'Avg SNF%',        v:F.f3(fs.avg_snf),  sub:'Target: 8.5+',              c:CL.teal},
+    {l:'Quality Dumps',   v:F.n(fs.dumps),     sub:'Transactions this month',   c:CL.red},
+    {l:'Dump Deductions', v:F.cr(fs.dump_value),sub:'Total ₹ deducted',         c:CL.red},
+    {l:'MCC Incentive',   v:F.cr(fs.mcc),      sub:'HPC-level bonus',           c:CL.green},
+    {l:'Qty Incentive',   v:F.cr(fs.qty_inc),  sub:'Volume slab bonus',         c:CL.blue},
+    {l:'Bonus Paid',      v:F.cr(fs.bonus),    sub:'Additional bonus',          c:CL.teal},
+    {l:'Avg Incentive %', v:F.f1(fs.avg_incentive_pct)+'%', sub:'As % of base price', c:CL.green},
+    {l:'Cost/Fat-Kg ₹',   v:F.f2(fs.avg_cost_fat_kg), sub:'Procurement efficiency', c:CL.amber},
+    {l:'Morning Split', v:(()=>{ const t=(fs.morning_ltr||0)+(fs.evening_ltr||0); return t>0?`${((fs.morning_ltr||0)/t*100).toFixed(0)}%`:'—'; })(), sub:'Shift 1 vs Shift 2', c:CL.blue},
+  ].map(k=>`<div class="kpi-card" style="--card-accent:${k.c}">
+    <div class="kpi-label">${k.l}</div>
+    <div class="kpi-value">${k.v}</div>
+    <div class="kpi-sub"><span style="color:var(--muted)">${k.sub}</span></div>
+  </div>`).join('');
+
+  // FAT/SNF daily trend — filter D.daily by zone/region, aggregate to date
+  const qFiltered  = filt(D.daily);
+  const qByDate    = groupBy(qFiltered,'proc_date');
+  const trend = Object.entries(qByDate).sort(([a],[b])=>a.localeCompare(b)).map(([date,rows])=>{
+    const fat_kg=sumF(rows,'fat_kg'), snf_kg=sumF(rows,'snf_kg'), qty_kg=sumF(rows,'qty_kg'), qty_ltr=sumF(rows,'qty_ltr'), net=sumF(rows,'net_price');
+    return {
+      proc_date: date,
+      fat:       qty_kg ? fat_kg/qty_kg*100 : null,
+      snf:       qty_kg ? snf_kg/qty_kg*100 : null,
+      incidents: sumF(rows,'incidents'),
+      rate:      qty_ltr ? net/qty_ltr : null,
+    };
+  });
+
+  dc('fatTrend');
+  charts['fatTrend'] = new Chart(document.getElementById('cFatTrend').getContext('2d'),{
+    type:'line',
+    data:{labels:trend.map(r=>r.proc_date.slice(5)),
+      datasets:[
+        {label:'FAT%',     data:trend.map(r=>r.fat),       borderColor:CL.amber, borderWidth:2, pointRadius:0, tension:0.3, fill:false},
+        {label:'SNF%',     data:trend.map(r=>r.snf),       borderColor:CL.teal,  borderWidth:2, pointRadius:0, tension:0.3, fill:false},
+        {label:'Rate/L',   data:trend.map(r=>r.rate),      borderColor:CL.blue,  borderWidth:1.5,pointRadius:0,tension:0.3, fill:false, yAxisID:'y2'},
+        {label:'Incidents',data:trend.map(r=>r.incidents), borderColor:CL.red,   borderWidth:1.5,pointRadius:0,tension:0.3, fill:false, yAxisID:'y3'},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      interaction:{intersect:false,mode:'index'},
+      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:10}}},
+      scales:{
+        x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{maxTicksLimit:12}},
+        y:{grid:{color:'rgba(0,0,0,0.04)'},title:{display:true,text:'%'}},
+        y2:{position:'right',grid:{display:false},title:{display:true,text:'₹/L'}},
+        y3:{position:'right',grid:{display:false},title:{display:true,text:'Incidents'},ticks:{color:CL.red}}
+      }}
+  });
+
+  // Incidents donut from quality_incidents
+  const incByType = {};
+  incidents.forEach(r=>{ incByType[r.incident_type||'Quality'] = (incByType[r.incident_type||'Quality']||0)+(r.cnt||r.incidents||1); });
+  const incLabels = Object.keys(incByType);
+  const incVals   = Object.values(incByType);
+
+  dc('incidents');
+  charts['incidents'] = new Chart(document.getElementById('cIncidents').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:incLabels.length ? incLabels : ['Dumps'],
+      datasets:[{data:incLabels.length ? incVals : [fs.dumps],
+        backgroundColor:[CL.red,CL.amber,CL.teal,CL.blue], borderWidth:2, borderColor:'#fff'}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'55%',
+      plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:10}},
+        tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${F.n(ctx.raw)}`}}}}
+  });
+
+  // Quality by region from monthly_hpc
+  const byRegionMap = groupBy(mhpc,'region');
+  const byRegion = Object.entries(byRegionMap)
+    .filter(([r])=>r)
+    .map(([region,rows])=>({
+      region,
+      avg_fat:       wavg(rows,'avg_fat','total_qty_ltr'),
+      avg_snf:       wavg(rows,'avg_snf','total_qty_ltr'),
+      dumps:         sumF(rows,'dumping_incidents'),
+      dump_value:    null,
+      rate_per_ltr:  avgF(rows,'avg_rate_per_ltr'),
+      cost_fat_kg:   avgF(rows,'avg_cost_per_fat_kg'),
+      incentive_pct: avgF(rows,'incentive_pct'),
+      mcc:           sumF(rows,'total_mcc_incentive'),
+      qty_inc:       sumF(rows,'total_qty_incentive'),
+      bonus:         sumF(rows,'total_bonus'),
+      net:           sumF(rows,'total_net_price'),
+    })).sort((a,b)=>b.avg_fat-a.avg_fat);
+
+  dc('fatRegion');
+  charts['fatRegion'] = new Chart(document.getElementById('cFatRegion').getContext('2d'),{
+    type:'bar',
+    data:{labels:byRegion.map(r=>r.region),
+      datasets:[
+        {label:'FAT%', data:byRegion.map(r=>r.avg_fat), backgroundColor:CL.amber,   borderRadius:3},
+        {label:'SNF%', data:byRegion.map(r=>r.avg_snf), backgroundColor:CL.teal_lt, borderRadius:3, borderWidth:1, borderColor:CL.teal},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45}},y:{grid:{color:'rgba(0,0,0,0.04)'}}}}
+  });
+
+  const incTop = [...byRegion].sort((a,b)=>b.net-a.net).slice(0,10);
+  dc('incentive');
+  charts['incentive'] = new Chart(document.getElementById('cIncentive').getContext('2d'),{
+    type:'bar',
+    data:{labels:incTop.map(r=>r.region),
+      datasets:[
+        {label:'MCC',   data:incTop.map(r=>r.mcc),     backgroundColor:CL.green, borderRadius:2, stack:'s'},
+        {label:'Qty',   data:incTop.map(r=>r.qty_inc), backgroundColor:CL.blue,  borderRadius:2, stack:'s'},
+        {label:'Bonus', data:incTop.map(r=>r.bonus),   backgroundColor:CL.amber, borderRadius:2, stack:'s'},
+      ]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10}}},
+      scales:{x:{stacked:true,grid:{color:'rgba(0,0,0,0.04)'}},y:{stacked:true,grid:{display:false},ticks:{font:{size:10}}}}}
+  });
+
+  dc('costFatKg');
+  charts['costFatKg'] = new Chart(document.getElementById('cCostFatKg').getContext('2d'),{
+    type:'bar',
+    data:{labels:byRegion.map(r=>r.region),
+      datasets:[{label:'₹/kg fat', data:byRegion.map(r=>r.cost_fat_kg), backgroundColor:CL.teal, borderRadius:3}]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'rgba(0,0,0,0.04)'}},y:{grid:{display:false},ticks:{font:{size:10}}}}}
+  });
+
+  document.getElementById('tbQlRegion').innerHTML = byRegion.map(r=>`
+    <tr>
+      <td><b>${r.region}</b></td>
+      <td style="color:var(--amber)">${F.f3(r.avg_fat)}</td>
+      <td>${F.f3(r.avg_snf)}</td>
+      <td>${r.dumps>0?`<span class="badge down">${F.n(r.dumps)}</span>`:'—'}</td>
+      <td>${F.cr(r.dump_value)}</td>
+      <td>₹${F.f2(r.rate_per_ltr)}</td>
+      <td>₹${F.f2(r.cost_fat_kg)}</td>
+      <td>${F.f1(r.incentive_pct)}%</td>
+    </tr>`).join('');
+
+  // Offenders — per-HPC, already aggregated in D.quality_incidents
+  const offenders = filt(D.quality_incidents)
+    .sort((a,b)=>(b.incidents||b.cnt||0)-(a.incidents||a.cnt||0))
+    .slice(0,20);
+  document.getElementById('tbOffenders').innerHTML = offenders.map(r=>`
+    <tr>
+      <td><b>${r.hpc_name||r.hpc_plant_key}</b></td>
+      <td>${r.region||'—'}</td>
+      <td><span class="badge down">${F.n(r.incidents||r.cnt)}</span></td>
+      <td>${F.cr(r.dump_value)}</td>
+      <td style="color:var(--amber)">${F.f3(r.avg_fat)}</td>
+    </tr>`).join('');
+}
+
+// ── BOOT — one fetch, then everything is instant ───────────────────────────────
+async function boot() {
+  const step   = t => document.getElementById('bootStep').textContent   = t;
+  const detail = t => document.getElementById('bootDetail').textContent  = t;
+  const bar    = p => document.getElementById('bootBar').style.width     = p+'%';
+
+  try {
+    step('Connecting to server…'); bar(5);
+    const res = await fetch('/api/bootstrap');
+    if(res.status === 401) { window.location.href = '/login'; return; }
+
+    step('Receiving data…'); bar(30);
+    detail('Parsing response…');
+    D = await res.json();
+    bar(60);
+
+    step('Building filters…'); detail('');
+    populateFilters();
+    bar(70);
+
+    step('Rendering overview…');
+    await new Promise(r => setTimeout(r, 0)); // let browser paint the bar update
+    renderOverview();
+    bar(90);
+
+    step('Ready');
+    detail(`${(D.hpc_list||[]).length.toLocaleString()} HPCs · ${(D.monthly_farmer||[]).length.toLocaleString()} farmers loaded`);
+    bar(100);
+
+    await new Promise(r => setTimeout(r, 500)); // brief pause so user sees 100%
+    document.getElementById('bootLoader').style.display = 'none';
+
+  } catch(e) {
+    document.getElementById('bootStep').textContent  = 'Failed to load';
+    document.getElementById('bootDetail').textContent = e.message || 'Check that the Flask server is running.';
+    document.getElementById('bootBar').style.background = '#c0392b';
+    document.getElementById('bootSpinner').style.borderTopColor = '#c0392b';
+    console.error('Bootstrap failed', e);
+  }
+}
+
+
+
+// ── HPC FARMER HEALTH ─────────────────────────────────────────────────────────
+function renderFarmerHealth() {
+  const raw = filt(D.farmer_health || []);
+  if (!raw.length) {
+    document.getElementById('farmerHealthSection').style.display = 'none';
+    return;
+  }
+  document.getElementById('farmerHealthSection').style.display = 'block';
+
+  // ── Segment counts ────────────────────────────────────────────────────────
+  const seg = {
+    Stable:   raw.filter(h=>h.segment==='Stable').length,
+    Growing:  raw.filter(h=>h.segment==='Growing').length,
+    AtRisk:   raw.filter(h=>h.segment==='At Risk').length,
+    Churning: raw.filter(h=>h.segment==='Churning').length,
+  };
+  const totalChurned  = raw.reduce((s,h)=>s+(h.churned||0),0);
+  const totalAcquired = raw.reduce((s,h)=>s+(h.acquired||0),0);
+  const avgConsistency= (raw.reduce((s,h)=>s+(h.consistency_pct||0),0)/raw.length).toFixed(1);
+
+  document.getElementById('fhKpis').innerHTML = [
+    {l:'🟢 Stable HPCs',      v:F.n(seg.Stable),       sub:'Consistent, low churn',      c:CL.green},
+    {l:'🔵 Growing HPCs',     v:F.n(seg.Growing),      sub:'Net farmer gain',             c:CL.blue},
+    {l:'🟡 At Risk HPCs',     v:F.n(seg.AtRisk),       sub:'Low consistency or rising churn', c:CL.amber},
+    {l:'🔴 Churning HPCs',    v:F.n(seg.Churning),     sub:'Attrition >25%',              c:CL.red},
+    {l:'Farmers Lost (MoM)',  v:F.n(totalChurned),     sub:'Active LM, zero this month',  c:CL.red},
+    {l:'Farmers Gained (MoM)',v:F.n(totalAcquired),    sub:'New this month',              c:CL.green},
+    {l:'Net Farmer Change',   v:(totalAcquired-totalChurned>=0?'+':'')+F.n(totalAcquired-totalChurned), sub:'Acquired minus churned', c:totalAcquired>=totalChurned?CL.green:CL.red},
+    {l:'Avg Consistency',     v:avgConsistency+'%',    sub:'HPCs with 25+ day farmers',   c:CL.teal},
+  ].map(k=>`<div class="kpi-card" style="--card-accent:${k.c}">
+    <div class="kpi-label">${k.l}</div>
+    <div class="kpi-value">${k.v}</div>
+    <div class="kpi-sub"><span style="color:var(--muted)">${k.sub}</span></div>
+  </div>`).join('');
+
+  // ── Segment donut ─────────────────────────────────────────────────────────
+  dc('fhSegment');
+  charts['fhSegment'] = new Chart(document.getElementById('cFhSegment').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:['Stable','Growing','At Risk','Churning'],
+      datasets:[{data:[seg.Stable,seg.Growing,seg.AtRisk,seg.Churning],
+        backgroundColor:[CL.green,CL.blue,CL.amber,CL.red], borderWidth:2, borderColor:'#fff'}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'55%',
+      plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:10}},
+        tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${F.n(ctx.raw)} HPCs`}}}}
+  });
+
+  // ── Attrition bar (top 15 worst) ──────────────────────────────────────────
+  const worst = [...raw].sort((a,b)=>(b.attrition_pct||0)-(a.attrition_pct||0)).slice(0,15);
+  dc('fhAttrition');
+  charts['fhAttrition'] = new Chart(document.getElementById('cFhAttrition').getContext('2d'),{
+    type:'bar',
+    data:{labels:worst.map(h=>h.hpc_name||h.hpc_plant_key),
+      datasets:[
+        {label:'Attrition %', data:worst.map(h=>h.attrition_pct||0),
+          backgroundColor:worst.map(h=>(h.attrition_pct||0)>25?CL.red:CL.amber), borderRadius:3},
+      ]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>`${ctx.raw}% attrition`}}},
+      scales:{x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{callback:v=>v+'%'}},
+              y:{grid:{display:false},ticks:{font:{size:10}}}}}
+  });
+
+  // ── Consistency bar (bottom 15) ───────────────────────────────────────────
+  const lowcons = [...raw].filter(h=>h.total_farmers>5)
+    .sort((a,b)=>(a.consistency_pct||0)-(b.consistency_pct||0)).slice(0,15);
+  dc('fhConsistency');
+  charts['fhConsistency'] = new Chart(document.getElementById('cFhConsistency').getContext('2d'),{
+    type:'bar',
+    data:{labels:lowcons.map(h=>h.hpc_name||h.hpc_plant_key),
+      datasets:[
+        {label:'Consistency %', data:lowcons.map(h=>h.consistency_pct||0),
+          backgroundColor:lowcons.map(h=>(h.consistency_pct||0)<40?CL.red:(h.consistency_pct||0)<60?CL.amber:CL.green),
+          borderRadius:3},
+      ]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>`${ctx.raw}% consistency`}}},
+      scales:{x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{callback:v=>v+'%'}},
+              y:{grid:{display:false},ticks:{font:{size:10}}}}}
+  });
+
+  // ── Table ─────────────────────────────────────────────────────────────────
+  const sort   = document.getElementById('fhSort')?.value || 'attrition_pct';
+  const sorted = [...raw].sort((a,b)=>(b[sort]||0)-(a[sort]||0));
+
+  document.getElementById('tbFarmerHealth').innerHTML = sorted.map(h=>{
+    const seg_badge = {
+      'Stable':   '<span class="tag green">Stable</span>',
+      'Growing':  '<span class="tag teal">Growing</span>',
+      'At Risk':  '<span class="tag amber">At Risk</span>',
+      'Churning': '<span class="tag red">Churning</span>',
+    }[h.segment] || '<span class="tag grey">—</span>';
+
+    return `<tr>
+      <td><b>${h.hpc_name||h.hpc_plant_key}</b></td>
+      <td>${h.region||'—'}</td>
+      <td>${h.zone||'—'}</td>
+      <td>${seg_badge}</td>
+      <td>${F.n(h.total_farmers)}</td>
+      <td><span class="badge up">${F.n(h.consistent)}</span></td>
+      <td>${h.irregular>0?`<span class="badge warn">${F.n(h.irregular)}</span>`:F.n(h.irregular)}</td>
+      <td>${F.f1(h.consistency_pct)}%</td>
+      <td>${h.churned>0?`<span class="badge down">-${F.n(h.churned)}</span>`:'<span style="color:var(--muted)">0</span>'}</td>
+      <td>${h.acquired>0?`<span class="badge up">+${F.n(h.acquired)}</span>`:'<span style="color:var(--muted)">0</span>'}</td>
+      <td>${(h.net_change||0)>=0?`<span class="badge up">+${F.n(h.net_change)}</span>`:`<span class="badge down">${F.n(h.net_change)}</span>`}</td>
+      <td style="color:${(h.attrition_pct||0)>25?'var(--red)':(h.attrition_pct||0)>10?'var(--amber)':'var(--text)'}">${F.f1(h.attrition_pct)}%</td>
+    </tr>`;
+  }).join('');
+}
+
+
+// ── FARMER RFM ────────────────────────────────────────────────────────────────
+const RFM_COLOR = {
+  'Champion': CL.teal,
+  'Loyal':    CL.green,
+  'At Risk':  CL.amber,
+  'Dormant':  '#999',
+  'Churned':  CL.red,
+};
+const RFM_ICON = {
+  'Champion': '🥇',
+  'Loyal':    '🌱',
+  'At Risk':  '⚠️',
+  'Dormant':  '💤',
+  'Churned':  '🔴',
+};
+const RFM_TIERS = ['Champion','Loyal','At Risk','Dormant','Churned'];
+
+function renderRfm() {
+  const rfm = filt(D.farmer_rfm || []);
+
+  if (!rfm.length) {
+    document.getElementById('farmerRfmSection').style.display = 'none';
+    return;
+  }
+  document.getElementById('farmerRfmSection').style.display = 'block';
+
+  // Populate region filter once
+  const rfmRegSel = document.getElementById('rfmRegionF');
+  if (rfmRegSel.options.length === 1) {
+    const regions = [...new Set(rfm.map(r=>r.region).filter(Boolean))].sort();
+    regions.forEach(r => {
+      const o = document.createElement('option');
+      o.value = o.textContent = r;
+      rfmRegSel.appendChild(o);
+    });
+  }
+
+  // ── KPI cards ─────────────────────────────────────────────────────────────
+  const total = rfm.length;
+  const byTier = tier => rfm.filter(r=>r.tier===tier);
+
+  const tierStats = RFM_TIERS.map(tier => {
+    const farmers = byTier(tier);
+    const cnt     = farmers.length;
+    const pct     = total ? ((cnt/total)*100).toFixed(0) : 0;
+    const vol     = sumF(farmers,'total_qty_ltr');
+    const pay     = sumF(farmers,'total_payout');
+    return { tier, cnt, pct, vol, pay };
+  });
+
+  document.getElementById('rfmKpis').innerHTML = tierStats.map(t=>`
+    <div class="kpi-card" style="--card-accent:${RFM_COLOR[t.tier]}">
+      <div class="kpi-label">${RFM_ICON[t.tier]} ${t.tier}</div>
+      <div class="kpi-value">${F.n(t.cnt)}</div>
+      <div class="kpi-sub">
+        <span style="color:var(--muted)">${t.pct}% of farmers</span>
+        <span style="margin-left:auto">${F.cr(t.pay)}</span>
+      </div>
+    </div>`).join('');
+
+  // ── Tier distribution bar ─────────────────────────────────────────────────
+  dc('cRfmTiers');
+  charts['cRfmTiers'] = new Chart(document.getElementById('cRfmTiers').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels: RFM_TIERS.map(t=>`${RFM_ICON[t]} ${t}`),
+      datasets:[{
+        data:  tierStats.map(t=>t.cnt),
+        backgroundColor: RFM_TIERS.map(t=>RFM_COLOR[t]),
+        borderRadius: 4,
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>`${F.n(ctx.raw)} farmers`}}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.04)'}}}}
+  });
+
+  // ── Volume by tier ────────────────────────────────────────────────────────
+  dc('cRfmVolume');
+  charts['cRfmVolume'] = new Chart(document.getElementById('cRfmVolume').getContext('2d'),{
+    type:'doughnut',
+    data:{
+      labels: RFM_TIERS.map(t=>`${RFM_ICON[t]} ${t}`),
+      datasets:[{
+        data:  tierStats.map(t=>t.vol),
+        backgroundColor: RFM_TIERS.map(t=>RFM_COLOR[t]),
+        borderWidth:2, borderColor:'#fff'
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'55%',
+      plugins:{
+        legend:{position:'bottom',labels:{boxWidth:10,padding:8,font:{size:10}}},
+        tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${F.l(ctx.raw)}`}}
+      }}
+  });
+
+  // ── Payout by tier ────────────────────────────────────────────────────────
+  dc('cRfmPayout');
+  charts['cRfmPayout'] = new Chart(document.getElementById('cRfmPayout').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels: RFM_TIERS.map(t=>`${RFM_ICON[t]} ${t}`),
+      datasets:[{
+        label:'Payout ₹',
+        data:  tierStats.map(t=>t.pay),
+        backgroundColor: RFM_TIERS.map(t=>RFM_COLOR[t]),
+        borderRadius:4,
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>F.cr(ctx.raw)}}},
+      scales:{
+        x:{grid:{display:false}},
+        y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{callback:v=>'₹'+Math.round(v/100000)+'L'}}
+      }}
+  });
+
+  // ── Scatter: F score vs M score ───────────────────────────────────────────
+  // Sample max 500 farmers for performance
+  const sample = [...rfm].sort(()=>Math.random()-0.5).slice(0,500);
+  const scatterDatasets = RFM_TIERS.map(tier=>({
+    label: `${RFM_ICON[tier]} ${tier}`,
+    data: sample.filter(r=>r.tier===tier).map(r=>({
+      x: r.f_score + (Math.random()-0.5)*0.3,  // jitter to avoid overlap
+      y: r.m_score + (Math.random()-0.5)*0.3,
+      r: Math.max(3, Math.min(10, (r.lpd||0)/20)),
+    })),
+    backgroundColor: RFM_COLOR[tier]+'99',
+    borderColor:     RFM_COLOR[tier],
+    borderWidth: 1,
+  }));
+
+  dc('cRfmScatter');
+  charts['cRfmScatter'] = new Chart(document.getElementById('cRfmScatter').getContext('2d'),{
+    type:'bubble',
+    data:{ datasets: scatterDatasets },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{boxWidth:10,padding:8,font:{size:10}}}},
+      scales:{
+        x:{
+          title:{display:true,text:'Frequency Score (delivery days)'},
+          min:0.5, max:3.5,
+          ticks:{callback:v=>['','Low','Mid','High'][Math.round(v)]||''},
+          grid:{color:'rgba(0,0,0,0.04)'}
+        },
+        y:{
+          title:{display:true,text:'Monetary Score (payout)'},
+          min:0.5, max:3.5,
+          ticks:{callback:v=>['','Low','Mid','High'][Math.round(v)]||''},
+          grid:{color:'rgba(0,0,0,0.04)'}
+        }
+      }}
+  });
+
+  // ── RFM Score histogram ───────────────────────────────────────────────────
+  const scoreBuckets = [3,4,5,6,7,8,9];
+  const scoreCounts  = scoreBuckets.map(s=>rfm.filter(r=>r.rfm_score===s).length);
+  const scoreColors  = scoreBuckets.map(s=>
+    s<=4?CL.red : s<=6?CL.amber : s<=7?CL.green : CL.teal
+  );
+
+  dc('cRfmScore');
+  charts['cRfmScore'] = new Chart(document.getElementById('cRfmScore').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels: scoreBuckets.map(s=>`Score ${s}`),
+      datasets:[{
+        data: scoreCounts,
+        backgroundColor: scoreColors,
+        borderRadius:4,
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>`${F.n(ctx.raw)} farmers`}}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.04)'}}}}
+  });
+
+  renderRfmTable();
+}
+
+function renderRfmTable() {
+  const tierFilter   = document.getElementById('rfmTierF')?.value   || '';
+  const sort         = document.getElementById('rfmSort')?.value     || 'total_payout';
+  const regionFilter = document.getElementById('rfmRegionF')?.value  || '';
+
+  let data = filt(D.farmer_rfm || []);
+  if (tierFilter)   data = data.filter(r=>r.tier===tierFilter);
+  if (regionFilter) data = data.filter(r=>r.region===regionFilter);
+  data = [...data].sort((a,b)=>(b[sort]||0)-(a[sort]||0)).slice(0,300);
+
+  const scoreBar = s => {
+    const filled = '█'.repeat(s);
+    const empty  = '░'.repeat(9-s);
+    const color  = s<=4?'var(--red)':s<=6?'var(--amber)':s<=7?'var(--green)':'var(--teal)';
+    return `<span style="font-family:var(--mono);font-size:10px;color:${color}">${filled}</span><span style="font-family:var(--mono);font-size:10px;color:var(--border2)">${empty}</span>`;
+  };
+
+  const scoreDot = s => {
+    const color = s===3?CL.teal : s===2?CL.green : CL.amber;
+    return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:2px"></span>${s}`;
+  };
+
+  document.getElementById('tbRfm').innerHTML = data.map((r,i)=>{
+    const tierColor = RFM_COLOR[r.tier]||'#888';
+    return `<tr>
+      <td style="color:var(--muted);font-size:11px">${i+1}</td>
+      <td><b>${r.farmer_name||'—'}</b></td>
+      <td style="color:var(--muted);font-family:var(--mono);font-size:10px">${r.farmer_code}</td>
+      <td style="color:var(--muted);font-size:11px">${r.hpc_plant_key}</td>
+      <td>${r.region||'—'}</td>
+      <td>
+        <span style="display:inline-flex;align-items:center;gap:5px;
+          background:${tierColor}18;color:${tierColor};
+          padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">
+          ${RFM_ICON[r.tier]} ${r.tier}
+        </span>
+      </td>
+      <td>${scoreDot(r.r_score)}</td>
+      <td>${scoreDot(r.f_score)}</td>
+      <td>${scoreDot(r.m_score)}</td>
+      <td>${scoreBar(r.rfm_score||0)} <span style="font-size:10px;color:var(--muted)">${r.rfm_score}</span></td>
+      <td>${r.delivery_days||0}<span style="color:var(--muted)">/28</span></td>
+      <td>${F.f1(r.lpd)}</td>
+      <td>${F.n(r.total_qty_ltr)}</td>
+      <td>${F.cr(r.total_payout)}</td>
+      <td style="color:var(--amber)">${F.f3(r.avg_fat)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="15" style="text-align:center;padding:24px;color:var(--muted)">No farmers found</td></tr>';
+}
+
+boot();
+</script>
+</body>
+</html>
