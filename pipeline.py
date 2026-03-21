@@ -56,12 +56,18 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler(LOG_PATH, encoding='utf-8'),
+        logging.FileHandler(LOG_PATH),
         logging.StreamHandler(sys.stdout),
     ]
 )
-import sys
-sys.stdout.reconfigure(encoding='utf-8')
+# Fix Windows console encoding
+import sys as _sys
+try:
+    _sys.stdout.reconfigure(encoding='utf-8')
+    _sys.stderr.reconfigure(encoding='utf-8')
+except Exception:
+    pass
+
 log = logging.getLogger(__name__)
 
 # ── DB / DUCKDB HELPERS ───────────────────────────────────────────────────────
@@ -130,7 +136,7 @@ WHERE CAST([MCS Date] AS DATE) = ?
 """
 
 def _fetch_one_day(target_date, sql_conn):
-    """Export one day from SQL Server → parquet. Returns row count (0 = already exists)."""
+    """Export one day from SQL Server -> parquet. Returns row count (0 = already exists)."""
     path = PARQUET_DIR / f"proc_{target_date}.parquet"
     if path.exists():
         return 0
@@ -163,7 +169,7 @@ def fetch_new_data(progress_cb=None):
         return []
 
     dates = [start + timedelta(days=i) for i in range((yesterday - start).days + 1)]
-    log.info(f"Fetching {len(dates)} days: {start} → {yesterday}")
+    log.info(f"Fetching {len(dates)} days: {start} -> {yesterday}")
 
     if progress_cb: progress_cb("fetch", 0, len(dates), f"Connecting to SQL Server...")
     try:
@@ -335,8 +341,8 @@ def build_month(yr, mth, conn=None, duck=None, progress_cb=None):
                     ROUND(SUM(qty_incentive), 2)  AS total_qty_incentive,
                     ROUND(SUM(bonus),         2)  AS total_bonus,
                     ROUND(SUM(dumping_amt),   2)  AS total_dumping_amt,
-                    ROUND(SUM(CASE WHEN TRIM(CAST(shift AS VARCHAR)) IN ('1','1.0','M') THEN qty_ltr ELSE 0 END),2) AS morning_ltr,
-                    ROUND(SUM(CASE WHEN TRIM(CAST(shift AS VARCHAR)) IN ('2','2.0','E') THEN qty_ltr ELSE 0 END),2) AS evening_ltr
+                    ROUND(SUM(CASE WHEN CAST(shift AS VARCHAR)='1' THEN qty_ltr ELSE 0 END),2) AS morning_ltr,
+                    ROUND(SUM(CASE WHEN CAST(shift AS VARCHAR)='2' THEN qty_ltr ELSE 0 END),2) AS evening_ltr
                 FROM month_raw
                 GROUP BY hpc_plant_key
             )
@@ -380,7 +386,7 @@ def build_month(yr, mth, conn=None, duck=None, progress_cb=None):
                     ROUND(SUM(fat_kg), 3)                                  AS total_fat_kg,
                     ROUND(SUM(net_price), 2)                               AS total_net_price,
                     ROUND(SUM(net_price)/NULLIF(SUM(qty_ltr),0), 4)        AS avg_rate_per_ltr,
-                    SUM(CASE WHEN fat < 3.2 OR snf < 7.5 THEN 1 ELSE 0 END) AS dumping_incidents
+                    SUM(CASE WHEN fat < 3.5 OR snf < 8.0 THEN 1 ELSE 0 END) AS dumping_incidents
                 FROM month_raw
                 GROUP BY farmer_code
             )
@@ -392,50 +398,6 @@ def build_month(yr, mth, conn=None, duck=None, progress_cb=None):
         conn.execute("DELETE FROM proc_monthly_farmer WHERE yr=? AND mth=?", (yr, mth))
         monthly_farmer.to_sql("proc_monthly_farmer", conn, if_exists="append", index=False)
         log.info(f"    monthly_farmer: {len(monthly_farmer):,} rows")
-
-
-
-        farmer_health = duck.execute(f"""
-            WITH curr AS (
-                SELECT hpc_plant_key, farmer_code
-                FROM month_raw
-                GROUP BY hpc_plant_key, farmer_code
-            ),
-            prev AS (
-                SELECT hpc_plant_key, farmer_code
-                FROM read_parquet([
-                    -- previous month's parquet files
-                ])
-                GROUP BY hpc_plant_key, farmer_code
-            ),
-            consistency AS (
-                SELECT hpc_plant_key,
-                    COUNT(DISTINCT farmer_code)  AS total_farmers,
-                    SUM(CASE WHEN delivery_days >= 25 THEN 1 ELSE 0 END) AS consistent,
-                    SUM(CASE WHEN delivery_days < 10  THEN 1 ELSE 0 END) AS irregular
-                FROM (
-                    SELECT hpc_plant_key, farmer_code,
-                        COUNT(DISTINCT proc_date) AS delivery_days
-                    FROM month_raw GROUP BY hpc_plant_key, farmer_code
-                )
-                GROUP BY hpc_plant_key
-            )
-            SELECT
-                {yr} AS yr, {mth} AS mth,
-                c.hpc_plant_key,
-                c.total_farmers,
-                c.consistent,
-                c.irregular,
-                ROUND(c.consistent * 100.0 / NULLIF(c.total_farmers,0), 1) AS consistency_pct,
-                -- attrition: in prev but not in curr
-                COUNT(DISTINCT CASE WHEN p.farmer_code IS NOT NULL 
-                    AND cu.farmer_code IS NULL THEN p.farmer_code END) AS churned,
-                -- acquisition: in curr but not in prev  
-                COUNT(DISTINCT CASE WHEN p.farmer_code IS NULL 
-                    AND cu.farmer_code IS NOT NULL THEN cu.farmer_code END) AS acquired
-            FROM consistency c
-            ...
-        """)
 
         # ── proc_quality_incidents ────────────────────────────────────────
         # Individual transactions where fat<3.5 OR snf<8.0
@@ -499,7 +461,7 @@ def build_all_summaries(from_ym=None, progress_cb=None):
     if from_ym:
         months = [(y, m) for y, m in months if (y, m) >= from_ym]
 
-    log.info(f"Building summaries: {months[0]} → {months[-1]} ({len(months)} months)")
+    log.info(f"Building summaries: {months[0]} -> {months[-1]} ({len(months)} months)")
 
     conn = get_db()
     duck = get_duck()
@@ -608,11 +570,11 @@ def build_snapshot(conn=None, progress_cb=None):
     )
 
     log.info(f"Building snapshot for {snap_date}")
-    log.info(f"  MTD:   {curr_start} → {snap_date}  ({day_num}d)")
-    log.info(f"  LM:    {prev_start} → {prev_end}  ({lm_days}d)")
-    log.info(f"  LMTD:  {prev_start} → {lmtd_end}  ({day_num}d)")
-    log.info(f"  LYMTD: {date(ly_yr, curr_mth, 1)} → {ly_mtd_end}  ({day_num}d)")
-    log.info(f"  LYSM:  {date(ly_yr, curr_mth, 1)} → {date(ly_yr, curr_mth, ly_sm_days)}")
+    log.info(f"  MTD:   {curr_start} -> {snap_date}  ({day_num}d)")
+    log.info(f"  LM:    {prev_start} -> {prev_end}  ({lm_days}d)")
+    log.info(f"  LMTD:  {prev_start} -> {lmtd_end}  ({day_num}d)")
+    log.info(f"  LYMTD: {date(ly_yr, curr_mth, 1)} -> {ly_mtd_end}  ({day_num}d)")
+    log.info(f"  LYSM:  {date(ly_yr, curr_mth, 1)} -> {date(ly_yr, curr_mth, ly_sm_days)}")
 
     if progress_cb: progress_cb("snapshot", 0, 1, f"Computing snapshot for {snap_date}...")
 
@@ -730,223 +692,428 @@ def build_snapshot(conn=None, progress_cb=None):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_snap_date ON proc_period_snapshot(snapshot_date)")
     conn.commit()
 
-    log.info(f"Snapshot built — {len(df):,} HPCs")
-    if progress_cb: progress_cb("snapshot", 1, 1, f"Snapshot built: {len(df):,} HPCs")
+    n_snap = len(df)
+    log.info(f"Snapshot built -- {n_snap:,} HPCs")
+    if progress_cb: progress_cb("snapshot", 1, 1, f"Snapshot built: {n_snap:,} HPCs")
 
+    if own: conn.close()
+
+    # Always rebuild RFM + health after snapshot (uses separate connection)
+    build_farmer_health(progress_cb=progress_cb)
+    build_farmer_rfm(progress_cb=progress_cb)
+
+    return True
+
+
+# ── FARMER HEALTH (per HPC) ───────────────────────────────────────────────────
+
+def build_farmer_health(conn=None, progress_cb=None):
+    """
+    Builds proc_hpc_farmer_health: farmer retention stats per HPC.
+    Consistent  = delivery_days >= 20 this month
+    Irregular   = delivery_days < 10 this month
+    Churned     = active last month, zero this month
+    Acquired    = zero last month, active this month
+    Attrition % = churned / last month total * 100
+    """
+    own = conn is None
+    if own: conn = get_db()
+
+    snap_date = conn.execute(
+        "SELECT MAX(snapshot_date) FROM proc_period_snapshot"
+    ).fetchone()[0]
+    if not snap_date:
+        log.warning("build_farmer_health: no snapshot yet, skipping")
+        if own: conn.close()
+        return False
+
+    # Get current and last month year/month
+    from datetime import date
+    sd = date.fromisoformat(snap_date)
+    curr_yr, curr_mth = sd.year, sd.month
+    if curr_mth == 1:
+        prev_yr, prev_mth = curr_yr - 1, 12
+    else:
+        prev_yr, prev_mth = curr_yr, curr_mth - 1
+
+    log.info(f"Building farmer health for {snap_date}")
+
+    conn.execute("DELETE FROM proc_hpc_farmer_health WHERE snapshot_date=?", (snap_date,))
 
     conn.execute(f"""
         INSERT INTO proc_hpc_farmer_health
-        WITH curr AS (
+        WITH
+        curr AS (
             SELECT hpc_plant_key, farmer_code, delivery_days
             FROM proc_monthly_farmer
-            WHERE yr*100+mth = (
-                SELECT MAX(yr*100+mth) FROM proc_monthly_farmer
-            )
+            WHERE yr={curr_yr} AND mth={curr_mth} AND delivery_days > 0
         ),
         prev AS (
             SELECT hpc_plant_key, farmer_code
             FROM proc_monthly_farmer
-            WHERE yr*100+mth = (
-                SELECT MAX(yr*100+mth) FROM proc_monthly_farmer
-                WHERE yr*100+mth < (SELECT MAX(yr*100+mth) FROM proc_monthly_farmer)
+            WHERE yr={prev_yr} AND mth={prev_mth} AND delivery_days > 0
+        ),
+        -- SQLite has no FULL OUTER JOIN — emulate with LEFT + RIGHT via UNION
+        all_pairs AS (
+            SELECT c.hpc_plant_key, c.farmer_code, c.delivery_days,
+                   CASE WHEN p.farmer_code IS NOT NULL THEN 1 ELSE 0 END AS in_prev
+            FROM curr c
+            LEFT JOIN prev p
+                ON c.hpc_plant_key = p.hpc_plant_key
+               AND c.farmer_code   = p.farmer_code
+            UNION ALL
+            -- Farmers in prev but NOT in curr (churned/dormant candidates)
+            SELECT p.hpc_plant_key, p.farmer_code, 0 AS delivery_days, 1 AS in_prev
+            FROM prev p
+            WHERE NOT EXISTS (
+                SELECT 1 FROM curr c
+                WHERE c.hpc_plant_key = p.hpc_plant_key
+                  AND c.farmer_code   = p.farmer_code
             )
         ),
-        prev_counts AS (
-            SELECT hpc_plant_key, COUNT(*) AS cnt
-            FROM prev GROUP BY hpc_plant_key
-        ),
-        churned AS (
-            SELECT p.hpc_plant_key, COUNT(*) AS cnt
-            FROM prev p
-            LEFT JOIN curr c ON p.hpc_plant_key=c.hpc_plant_key
-                             AND p.farmer_code=c.farmer_code
-            WHERE c.farmer_code IS NULL
-            GROUP BY p.hpc_plant_key
-        ),
-        acquired AS (
-            SELECT c.hpc_plant_key, COUNT(*) AS cnt
-            FROM curr c
-            LEFT JOIN prev p ON c.hpc_plant_key=p.hpc_plant_key
-                             AND c.farmer_code=p.farmer_code
-            WHERE p.farmer_code IS NULL
-            GROUP BY c.hpc_plant_key
-        ),
-        base AS (
+        stats AS (
             SELECT
-                c.hpc_plant_key,
-                COUNT(*)  AS total_farmers,
-                SUM(CASE WHEN c.delivery_days>=25 THEN 1 ELSE 0 END) AS consistent,
-                SUM(CASE WHEN c.delivery_days<10  THEN 1 ELSE 0 END) AS irregular,
-                ROUND(SUM(CASE WHEN c.delivery_days>=25 THEN 1 ELSE 0 END)*100.0/COUNT(*),1) AS consistency_pct,
-                COALESCE(ch.cnt,0) AS churned,
-                COALESCE(ac.cnt,0) AS acquired,
-                COALESCE(ac.cnt,0)-COALESCE(ch.cnt,0) AS net_change,
-                ROUND(COALESCE(ch.cnt,0)*100.0/NULLIF(COALESCE(pc.cnt,0),0),1) AS attrition_pct
-            FROM curr c
-            LEFT JOIN churned  ch ON c.hpc_plant_key=ch.hpc_plant_key
-            LEFT JOIN acquired ac ON c.hpc_plant_key=ac.hpc_plant_key
-            LEFT JOIN prev_counts pc ON c.hpc_plant_key=pc.hpc_plant_key
-            GROUP BY c.hpc_plant_key
+                hpc_plant_key,
+                SUM(CASE WHEN delivery_days > 0 THEN 1 ELSE 0 END)          AS total_farmers,
+                SUM(CASE WHEN delivery_days >= 20 THEN 1 ELSE 0 END)         AS consistent,
+                SUM(CASE WHEN delivery_days > 0 AND delivery_days < 10 THEN 1 ELSE 0 END) AS irregular,
+                -- Churned: in prev, not in curr this month
+                SUM(CASE WHEN delivery_days = 0 AND in_prev = 1 THEN 1 ELSE 0 END) AS churned,
+                -- Acquired: in curr but was not in prev
+                SUM(CASE WHEN delivery_days > 0 AND in_prev = 0 THEN 1 ELSE 0 END) AS acquired,
+                SUM(in_prev)                                                  AS prev_total
+            FROM all_pairs
+            GROUP BY hpc_plant_key
         )
         SELECT
-            '{snap_date}',
-            hpc_plant_key,
-            total_farmers, consistent, irregular, consistency_pct,
-            churned, acquired, net_change, attrition_pct,
+            '{snap_date}'                                AS snapshot_date,
+            s.hpc_plant_key,
+            s.total_farmers,
+            s.consistent,
+            s.irregular,
+            ROUND(CASE WHEN s.total_farmers > 0
+                THEN s.consistent * 100.0 / s.total_farmers ELSE 0 END, 1) AS consistency_pct,
+            s.churned,
+            s.acquired,
+            s.acquired - s.churned                      AS net_change,
+            ROUND(CASE WHEN s.prev_total > 0
+                THEN s.churned * 100.0 / s.prev_total ELSE 0 END, 1) AS attrition_pct,
             CASE
-                WHEN attrition_pct > 25   THEN 'Churning'
-                WHEN consistency_pct < 40 THEN 'At Risk'
-                WHEN net_change > 2       THEN 'Growing'
-                ELSE 'Stable'
-            END AS segment
-        FROM base
+                WHEN s.acquired > s.churned              THEN 'Growing'
+                WHEN s.churned * 100.0 / MAX(s.prev_total,1) > 15 THEN 'Churning'
+                WHEN s.consistent * 100.0 / MAX(s.total_farmers,1) >= 60 THEN 'Stable'
+                ELSE 'At Risk'
+            END                                         AS segment
+        FROM stats s
     """)
     conn.commit()
-    fh_count = conn.execute(
-        "SELECT COUNT(*) FROM proc_hpc_farmer_health WHERE snapshot_date=?",
-        (str(snap_date),)
+
+    n = conn.execute(
+        "SELECT COUNT(*) FROM proc_hpc_farmer_health WHERE snapshot_date=?", (snap_date,)
     ).fetchone()[0]
-    log.info(f"Farmer health built — {fh_count:,} HPCs")
+    log.info(f"Farmer health built — {n:,} HPCs for {snap_date}")
+
+    if own: conn.close()
+    if progress_cb: progress_cb("farmer_health", 1, 1, f"Farmer health built — {n:,} HPCs")
+    return True
 
 
-    # ── Farmer RFM Tiers ──────────────────────────────────────────────────
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS proc_farmer_rfm (
-            snapshot_date  TEXT,
-            farmer_code    TEXT,
-            farmer_name    TEXT,
-            hpc_plant_key  TEXT,
-            region         TEXT,
-            zone           TEXT,
-            milk_type      TEXT,
-            r_score        INTEGER,   -- 1-3: recency
-            f_score        INTEGER,   -- 1-3: frequency
-            m_score        INTEGER,   -- 1-3: monetary
-            rfm_score      INTEGER,   -- sum: 3-9
-            tier           TEXT,      -- Champion/Loyal/AtRisk/Dormant/Churned
-            total_qty_ltr  REAL,
-            total_payout   REAL,
-            delivery_days  INTEGER,
-            avg_fat        REAL,
-            lpd            REAL
-        )
-    """)
-    conn.execute(
-        "DELETE FROM proc_farmer_rfm WHERE snapshot_date=?", (str(snap_date),)
-    )
+# ── FARMER RFM ────────────────────────────────────────────────────────────────
 
-    # ── Farmer RFM Tiers ─────────────────────────────────────────────────────
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS proc_farmer_rfm (
-            snapshot_date TEXT, farmer_code TEXT, farmer_name TEXT,
-            hpc_plant_key TEXT, region TEXT, zone TEXT, milk_type TEXT,
-            r_score INTEGER, f_score INTEGER, m_score INTEGER,
-            rfm_score INTEGER, tier TEXT,
-            total_qty_ltr REAL, total_payout REAL,
-            delivery_days INTEGER, avg_fat REAL, lpd REAL
-        )
-    """)
-    conn.execute("DELETE FROM proc_farmer_rfm WHERE snapshot_date=?", (str(snap_date),))
+def build_farmer_rfm(conn=None, progress_cb=None):
+    """
+    Builds proc_farmer_rfm with proper Dormant + Churned tiers.
 
-    # Step 1: compute thresholds in Python first
-    th = conn.execute("""
+    R score (Recency):
+      3 = delivered this month (delivery_days > 0)
+      2 = delivered last month but NOT this month  -> Dormant candidate
+      1 = not in either month                      -> Churned candidate
+
+    F score (Frequency — delivery_days this month, percentile-based):
+      3 = top third  (high attendance)
+      2 = mid third
+      1 = bottom third
+
+    M score (Monetary — total_payout, percentile-based):
+      3 = top third
+      2 = mid third
+      1 = bottom third
+
+    Tiers:
+      Champion  : R=3, F=3, M>=2
+      Loyal     : R=3, F>=2  (not Champion)
+      At Risk   : R=3, any low F or M
+      Dormant   : R=2  (active last month, zero this month)
+      Churned   : R=1  (not active in either month)
+    """
+    own = conn is None
+    if own: conn = get_db()
+
+    snap_date = conn.execute(
+        "SELECT MAX(snapshot_date) FROM proc_period_snapshot"
+    ).fetchone()[0]
+    if not snap_date:
+        log.warning("build_farmer_rfm: no snapshot yet, skipping")
+        if own: conn.close()
+        return False
+
+    from datetime import date
+    sd = date.fromisoformat(snap_date)
+    curr_yr, curr_mth = sd.year, sd.month
+    if curr_mth == 1:
+        prev_yr, prev_mth = curr_yr - 1, 12
+    else:
+        prev_yr, prev_mth = curr_yr, curr_mth - 1
+    # Two months ago — for Churned (absent from both last month AND this month)
+    if prev_mth == 1:
+        pp_yr, pp_mth = prev_yr - 1, 12
+    else:
+        pp_yr, pp_mth = prev_yr, prev_mth - 1
+
+    log.info(f"Building farmer RFM for {snap_date}")
+
+    # Compute F/M thresholds from current month active farmers
+    th = conn.execute(f"""
         WITH curr AS (
-            SELECT delivery_days, total_net_price AS total_payout
+            SELECT delivery_days, total_net_price AS payout
             FROM proc_monthly_farmer
-            WHERE yr*100+mth = (SELECT MAX(yr*100+mth) FROM proc_monthly_farmer)
+            WHERE yr={curr_yr} AND mth={curr_mth} AND delivery_days > 0
         ),
         f_sorted AS (
-            SELECT delivery_days, ROW_NUMBER() OVER (ORDER BY delivery_days) AS rn,
+            SELECT delivery_days,
+                   ROW_NUMBER() OVER (ORDER BY delivery_days) AS rn,
                    COUNT(*) OVER () AS total
             FROM curr
         ),
         m_sorted AS (
-            SELECT total_payout, ROW_NUMBER() OVER (ORDER BY total_payout) AS rn,
+            SELECT payout,
+                   ROW_NUMBER() OVER (ORDER BY payout) AS rn,
                    COUNT(*) OVER () AS total
             FROM curr
         )
         SELECT
-            (SELECT delivery_days FROM f_sorted WHERE rn = MAX(1, total/3)     LIMIT 1) AS f_low,
-            (SELECT delivery_days FROM f_sorted WHERE rn = MAX(1, total*2/3)   LIMIT 1) AS f_high,
-            (SELECT total_payout  FROM m_sorted WHERE rn = MAX(1, total/3)     LIMIT 1) AS m_low,
-            (SELECT total_payout  FROM m_sorted WHERE rn = MAX(1, total*2/3)   LIMIT 1) AS m_high
+            (SELECT delivery_days FROM f_sorted WHERE rn=MAX(1,total/3) LIMIT 1)   AS f_low,
+            (SELECT delivery_days FROM f_sorted WHERE rn=MAX(1,total*2/3) LIMIT 1) AS f_high,
+            (SELECT payout FROM m_sorted WHERE rn=MAX(1,total/3) LIMIT 1)          AS m_low,
+            (SELECT payout FROM m_sorted WHERE rn=MAX(1,total*2/3) LIMIT 1)        AS m_high
         FROM curr LIMIT 1
     """).fetchone()
 
-    f_low  = th[0] or 10
-    f_high = th[1] or 20
-    m_low  = th[2] or 1000
-    m_high = th[3] or 5000
+    f_low  = (th[0] if th and th[0] else 10)
+    f_high = (th[1] if th and th[1] else 20)
+    m_low  = (th[2] if th and th[2] else 1000)
+    m_high = (th[3] if th and th[3] else 5000)
+    log.info(f"  RFM thresholds: F=[{f_low},{f_high}d] M=[{m_low},{m_high} Rs]")
 
-    # Step 2: insert with thresholds baked in as literals
+    # Diagnostic: how many dormant farmers exist?
+    dormant_check = conn.execute(f"""
+        SELECT COUNT(*) FROM proc_monthly_farmer pm
+        WHERE pm.yr={prev_yr} AND pm.mth={prev_mth} AND pm.delivery_days > 0
+          AND NOT EXISTS (
+            SELECT 1 FROM proc_monthly_farmer c2
+            WHERE c2.farmer_code   = pm.farmer_code
+              AND c2.hpc_plant_key = pm.hpc_plant_key
+              AND c2.yr={curr_yr} AND c2.mth={curr_mth}
+              AND c2.delivery_days > 0
+          )
+    """).fetchone()[0]
+    log.info(f"  Dormant candidate count: {dormant_check:,}")
+
+    curr_check = conn.execute(f"""
+        SELECT COUNT(*) FROM proc_monthly_farmer
+        WHERE yr={curr_yr} AND mth={curr_mth} AND delivery_days > 0
+    """).fetchone()[0]
+    log.info(f"  Current month active farmers: {curr_check:,}")
+
+    # Diagnostic: count candidates before INSERT
+    curr_n = conn.execute(f"""
+        SELECT COUNT(*) FROM proc_monthly_farmer
+        WHERE yr={curr_yr} AND mth={curr_mth} AND delivery_days>0
+    """).fetchone()[0]
+    dormant_n = conn.execute(f"""
+        SELECT COUNT(*) FROM proc_monthly_farmer pm
+        WHERE pm.yr={prev_yr} AND pm.mth={prev_mth} AND pm.delivery_days > 0
+          AND NOT EXISTS (
+            SELECT 1 FROM proc_monthly_farmer c2
+            WHERE c2.farmer_code=pm.farmer_code AND c2.hpc_plant_key=pm.hpc_plant_key
+              AND c2.yr={curr_yr} AND c2.mth={curr_mth} AND c2.delivery_days>0
+          )
+    """).fetchone()[0]
+    churned_n = conn.execute(f"""
+        SELECT COUNT(*) FROM proc_monthly_farmer pm
+        WHERE pm.yr={pp_yr} AND pm.mth={pp_mth} AND pm.delivery_days > 0
+          AND NOT EXISTS (
+            SELECT 1 FROM proc_monthly_farmer p2
+            WHERE p2.farmer_code=pm.farmer_code AND p2.hpc_plant_key=pm.hpc_plant_key
+              AND p2.yr={prev_yr} AND p2.mth={prev_mth} AND p2.delivery_days>0
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM proc_monthly_farmer c2
+            WHERE c2.farmer_code=pm.farmer_code AND c2.hpc_plant_key=pm.hpc_plant_key
+              AND c2.yr={curr_yr} AND c2.mth={curr_mth} AND c2.delivery_days>0
+          )
+    """).fetchone()[0]
+    log.info(f"  Current month active farmers : {curr_n:,}")
+    log.info(f"  Dormant candidates (LM->now) : {dormant_n:,}")
+    log.info(f"  Churned candidates (2m->now) : {churned_n:,}")
+
+    conn.execute("DELETE FROM proc_farmer_rfm WHERE snapshot_date=?", (snap_date,))
+
     conn.execute(f"""
         INSERT INTO proc_farmer_rfm
         WITH
+        -- Current month active farmers
         curr AS (
-            SELECT farmer_code, farmer_name, hpc_plant_key, region, zone, milk_type,
-                   delivery_days, total_qty_ltr,
-                   total_net_price AS total_payout,
-                   avg_fat, lpd
-            FROM proc_monthly_farmer
-            WHERE yr*100+mth = (SELECT MAX(yr*100+mth) FROM proc_monthly_farmer)
+            SELECT mf.farmer_code, mf.farmer_name, mf.hpc_plant_key,
+                   mf.region, mf.zone,
+                   CAST(s.plant_code AS TEXT) AS plant_code,
+                   mf.milk_type,
+                   mf.delivery_days,
+                   mf.total_qty_ltr,
+                   mf.total_net_price  AS total_payout,
+                   mf.avg_fat,
+                   mf.lpd,
+                   3 AS r_score
+            FROM proc_monthly_farmer mf
+            JOIN proc_period_snapshot s
+              ON mf.hpc_plant_key = s.hpc_plant_key
+             AND s.snapshot_date  = '{snap_date}'
+            WHERE mf.yr={curr_yr} AND mf.mth={curr_mth}
+              AND mf.delivery_days > 0
         ),
+        -- Last month active farmers (for Dormant detection)
         prev AS (
-            SELECT farmer_code, total_qty_ltr AS prev_ltr
+            SELECT DISTINCT farmer_code, hpc_plant_key
             FROM proc_monthly_farmer
-            WHERE yr*100+mth = (
-                SELECT MAX(yr*100+mth) FROM proc_monthly_farmer
-                WHERE yr*100+mth < (SELECT MAX(yr*100+mth) FROM proc_monthly_farmer)
-            )
+            WHERE yr={prev_yr} AND mth={prev_mth}
+              AND delivery_days > 0
         ),
-        scored AS (
+        -- Dormant: active last month, zero delivery this month
+        -- Uses NOT EXISTS — valid SQLite, no FULL OUTER JOIN needed
+        -- Dormant: active last month, NOT active this month (R=2)
+        -- Carries last-active-month volume so we can show "volume lost"
+        dormant AS (
             SELECT
-                c.*,
-                p.prev_ltr,
-                CASE
-                    WHEN c.delivery_days > 0 THEN 3
-                    WHEN p.farmer_code IS NOT NULL THEN 2
-                    ELSE 1
-                END AS r_score,
-                CASE
-                    WHEN c.delivery_days >= {f_high} THEN 3
-                    WHEN c.delivery_days >= {f_low}  THEN 2
-                    ELSE 1
-                END AS f_score,
-                CASE
-                    WHEN c.total_payout >= {m_high} THEN 3
-                    WHEN c.total_payout >= {m_low}  THEN 2
-                    ELSE 1
-                END AS m_score
-            FROM curr c
-            LEFT JOIN prev p ON c.farmer_code = p.farmer_code
+                pm.farmer_code,
+                pm.farmer_name,
+                pm.hpc_plant_key,
+                s.region, s.zone,
+                CAST(s.plant_code AS TEXT) AS plant_code,
+                pm.milk_type,
+                pm.delivery_days           AS delivery_days,    -- last active days
+                pm.total_qty_ltr           AS total_qty_ltr,    -- last active volume
+                pm.total_net_price         AS total_payout,     -- last active payout
+                pm.avg_fat                 AS avg_fat,
+                pm.lpd                     AS lpd,              -- last active LPD
+                2                          AS r_score
+            FROM proc_monthly_farmer pm
+            JOIN proc_period_snapshot s
+              ON pm.hpc_plant_key = s.hpc_plant_key
+             AND s.snapshot_date  = '{snap_date}'
+            WHERE pm.yr={prev_yr} AND pm.mth={prev_mth}
+              AND pm.delivery_days > 0
+              AND NOT EXISTS (
+                SELECT 1 FROM proc_monthly_farmer c2
+                WHERE c2.farmer_code   = pm.farmer_code
+                  AND c2.hpc_plant_key = pm.hpc_plant_key
+                  AND c2.yr={curr_yr} AND c2.mth={curr_mth}
+                  AND c2.delivery_days > 0
+              )
+        ),
+        -- Churned: active 2 months ago, absent from BOTH last month AND this month (R=1)
+        -- Carries last-active-month volume so we can show "volume lost"
+        churned AS (
+            SELECT
+                pm.farmer_code,
+                pm.farmer_name,
+                pm.hpc_plant_key,
+                s.region, s.zone,
+                CAST(s.plant_code AS TEXT) AS plant_code,
+                pm.milk_type,
+                pm.delivery_days           AS delivery_days,    -- last active days
+                pm.total_qty_ltr           AS total_qty_ltr,    -- last active volume
+                pm.total_net_price         AS total_payout,     -- last active payout
+                pm.avg_fat                 AS avg_fat,
+                pm.lpd                     AS lpd,              -- last active LPD
+                1                          AS r_score
+            FROM proc_monthly_farmer pm
+            JOIN proc_period_snapshot s
+              ON pm.hpc_plant_key = s.hpc_plant_key
+             AND s.snapshot_date  = '{snap_date}'
+            WHERE pm.yr={pp_yr} AND pm.mth={pp_mth}
+              AND pm.delivery_days > 0
+              AND NOT EXISTS (
+                SELECT 1 FROM proc_monthly_farmer p2
+                WHERE p2.farmer_code   = pm.farmer_code
+                  AND p2.hpc_plant_key = pm.hpc_plant_key
+                  AND p2.yr={prev_yr} AND p2.mth={prev_mth}
+                  AND p2.delivery_days > 0
+              )
+              AND NOT EXISTS (
+                SELECT 1 FROM proc_monthly_farmer c2
+                WHERE c2.farmer_code   = pm.farmer_code
+                  AND c2.hpc_plant_key = pm.hpc_plant_key
+                  AND c2.yr={curr_yr} AND c2.mth={curr_mth}
+                  AND c2.delivery_days > 0
+              )
+        ),
+        -- Combine: active + dormant + churned
+        all_farmers AS (
+            SELECT *,
+                   CASE WHEN delivery_days >= {f_high} THEN 3
+                        WHEN delivery_days >= {f_low}  THEN 2
+                        ELSE 1 END AS f_score,
+                   CASE WHEN total_payout >= {m_high} THEN 3
+                        WHEN total_payout >= {m_low}  THEN 2
+                        ELSE 1 END AS m_score
+            FROM curr
+            UNION ALL
+            SELECT *, 1 AS f_score, 1 AS m_score FROM dormant
+            UNION ALL
+            SELECT *, 1 AS f_score, 1 AS m_score FROM churned
         )
         SELECT
-            '{snap_date}',
-            farmer_code, farmer_name, hpc_plant_key, region, zone, milk_type,
+            '{snap_date}'  AS snapshot_date,
+            farmer_code, farmer_name, hpc_plant_key, region, zone, plant_code, milk_type,
             r_score, f_score, m_score,
             r_score + f_score + m_score AS rfm_score,
             CASE
-                WHEN delivery_days = 0 AND prev_ltr > 0     THEN 'Dormant'
-                WHEN delivery_days = 0 AND prev_ltr IS NULL  THEN 'Churned'
-                WHEN r_score=3 AND f_score=3 AND m_score>=2  THEN 'Champion'
-                WHEN r_score=3 AND f_score>=2                THEN 'Loyal'
-                WHEN r_score=2                               THEN 'Dormant'
-                ELSE 'At Risk'
+                WHEN r_score = 3 AND f_score = 3 AND m_score >= 2 THEN 'Champion'
+                WHEN r_score = 3 AND f_score >= 2                 THEN 'Loyal'
+                WHEN r_score = 3                                   THEN 'At Risk'
+                WHEN r_score = 2                                   THEN 'Dormant'
+                ELSE                                                    'Churned'
             END AS tier,
             total_qty_ltr, total_payout, delivery_days, avg_fat, lpd
-        FROM scored
+        FROM all_farmers
     """)
     conn.commit()
-    rfm_count = conn.execute(
-        "SELECT COUNT(*) FROM proc_farmer_rfm WHERE snapshot_date=?", (str(snap_date),)
-    ).fetchone()[0]
-    log.info(f"Farmer RFM built — {rfm_count:,} farmers")
+
+    counts = conn.execute(f"""
+        SELECT tier, COUNT(*) FROM proc_farmer_rfm
+        WHERE snapshot_date='{snap_date}' GROUP BY tier ORDER BY tier
+    """).fetchall()
+    for t, c in counts:
+        log.info(f"  RFM {t}: {c:,}")
+
     if own: conn.close()
+    if progress_cb: progress_cb("farmer_rfm", 1, 1,
+        "Farmer RFM built — " + ", ".join(f"{t}:{c:,}" for t,c in counts))
     return True
+
 
 # ── TABLE SETUP ───────────────────────────────────────────────────────────────
 
 def _ensure_tables(conn):
+    # Migrate proc_farmer_rfm if missing plant_code column (schema was updated)
+    rfm_cols = [r[1] for r in conn.execute(
+        "PRAGMA table_info(proc_farmer_rfm)"
+    ).fetchall()]
+    if rfm_cols and 'plant_code' not in rfm_cols:
+        log.info("Migrating proc_farmer_rfm — dropping old schema (missing plant_code)")
+        conn.execute("DROP TABLE IF EXISTS proc_farmer_rfm")
+        conn.commit()
+
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS proc_daily_hpc (
             proc_date TEXT, shift TEXT, hpc_plant_key TEXT,
@@ -1005,6 +1172,20 @@ def _ensure_tables(conn):
             trigger TEXT, stage TEXT, status TEXT,
             rows_processed INTEGER, duration_sec REAL, message TEXT
         );
+        CREATE TABLE IF NOT EXISTS proc_hpc_farmer_health (
+            snapshot_date TEXT, hpc_plant_key TEXT,
+            total_farmers INTEGER, consistent INTEGER, irregular INTEGER,
+            consistency_pct REAL, churned INTEGER, acquired INTEGER,
+            net_change INTEGER, attrition_pct REAL, segment TEXT
+        );
+        CREATE TABLE IF NOT EXISTS proc_farmer_rfm (
+            snapshot_date TEXT, farmer_code TEXT, farmer_name TEXT,
+            hpc_plant_key TEXT, region TEXT, zone TEXT, plant_code TEXT,
+            milk_type TEXT, r_score INTEGER, f_score INTEGER, m_score INTEGER,
+            rfm_score INTEGER, tier TEXT,
+            total_qty_ltr REAL, total_payout REAL,
+            delivery_days INTEGER, avg_fat REAL, lpd REAL
+        );
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
@@ -1058,7 +1239,7 @@ def _ensure_default_admin(conn):
 
 def run_nightly():
     """
-    Standard nightly job: fetch yesterday → rebuild current month → retention → snapshot.
+    Standard nightly job: fetch yesterday -> rebuild current month -> retention -> snapshot.
     This runs every night. Total time ~6 minutes.
     """
     import time
@@ -1105,7 +1286,7 @@ def run_nightly():
 def run_full_fetch(progress_cb=None):
     """
     Admin-triggered full fetch.
-    Fetches all missing data → rebuilds affected months → retention → purge → snapshot.
+    Fetches all missing data -> rebuilds affected months -> retention -> purge -> snapshot.
     Runs in a background thread. Returns result dict.
     """
     import time
