@@ -21,18 +21,18 @@
   --red-bdr:   rgba(196,18,48,.2);
 
   /* Neutrals */
-  --bg:        #f7f5f2;
+  --bg:        #f4f6f8;
   --surface:   #ffffff;
-  --surface2:  #faf9f7;
+  --surface2:  #f8fafc;
   --warm:      #f2ede8;
-  --border:    #e8e2da;
-  --border2:   #d4ccc0;
+  --border:    #e2e8f0;
+  --border2:   #cbd5e1;
 
   /* Text */
-  --ink:       #1c1410;
-  --ink2:      #433830;
-  --muted:     #8a7d72;
-  --muted-lt:  #b8aca0;
+  --ink:       #0f172a;
+  --ink2:      #334155;
+  --muted:     #64748b;
+  --muted-lt:  #94a3b8;
 
   /* Semantic */
   --green:     #16803c;
@@ -51,8 +51,8 @@
 
   --radius:    8px;
   --radius-lg: 12px;
-  --shadow:    0 1px 3px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.04);
-  --shadow-md: 0 4px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
+  --shadow:    0 4px 20px -2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 10px 25px -5px rgba(15, 23, 42, 0.1);
 }
 
 *,::before,::after { box-sizing:border-box; margin:0; padding:0; }
@@ -67,605 +67,191 @@ body {
   min-height: 100vh;
 }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   BOOT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-#boot {
-  position: fixed; inset: 0; z-index: 9999;
-  background: var(--brand);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  transition: opacity .5s ease;
-}
+/* BOOT */
+#boot { position: fixed; inset: 0; z-index: 9999; background: var(--brand); display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity .5s ease; }
 #boot.gone { opacity: 0; pointer-events: none; }
-
 .boot-inner { text-align: center; }
-
-.boot-brand {
-  font-family: var(--font-head);
-  font-size: 11px; font-weight: 700;
-  letter-spacing: .22em; text-transform: uppercase;
-  color: rgba(255,255,255,.6); margin-bottom: 14px;
-}
-
-.boot-logo-text {
-  font-family: var(--font-head);
-  font-size: 42px; font-weight: 800;
-  color: #fff;
-  letter-spacing: -.01em; line-height: 1;
-  margin-bottom: 4px;
-}
-
-.boot-logo-sub {
-  font-family: var(--font-body);
-  font-size: 12px; font-weight: 300;
-  color: rgba(255,255,255,.6);
-  letter-spacing: .12em; text-transform: uppercase;
-  margin-bottom: 48px;
-}
-
-.boot-count {
-  font-family: var(--font-head);
-  font-size: 56px; font-weight: 700;
-  color: #fff; line-height: 1; margin-bottom: 6px;
-  letter-spacing: -.02em;
-}
-
-.boot-count-label {
-  font-size: 11px; color: rgba(255,255,255,.5);
-  letter-spacing: .08em; text-transform: uppercase;
-  margin-bottom: 36px;
-}
-
-.boot-track {
-  width: 220px; height: 2px;
-  background: rgba(255,255,255,.2);
-  border-radius: 2px; overflow: hidden; margin: 0 auto;
-}
-.boot-fill {
-  height: 100%; background: #fff;
-  border-radius: 2px; width: 0;
-  transition: width .35s ease;
-}
+.boot-brand { font-family: var(--font-head); font-size: 11px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: rgba(255,255,255,.6); margin-bottom: 14px; }
+.boot-logo-text { font-family: var(--font-head); font-size: 42px; font-weight: 800; color: #fff; letter-spacing: -.01em; line-height: 1; margin-bottom: 4px; }
+.boot-logo-sub { font-family: var(--font-body); font-size: 12px; font-weight: 300; color: rgba(255,255,255,.6); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 48px; }
+.boot-count { font-family: var(--font-head); font-size: 56px; font-weight: 700; color: #fff; line-height: 1; margin-bottom: 6px; letter-spacing: -.02em; }
+.boot-count-label { font-size: 11px; color: rgba(255,255,255,.5); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 36px; }
+.boot-track { width: 220px; height: 2px; background: rgba(255,255,255,.2); border-radius: 2px; overflow: hidden; margin: 0 auto; }
+.boot-fill { height: 100%; background: #fff; border-radius: 2px; width: 0; transition: width .35s ease; }
 .boot-msg { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 12px; }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   HEADER
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-header {
-  background: var(--brand);
-  height: 58px;
-  display: flex; align-items: center;
-  padding: 0 28px; gap: 20px;
-  position: sticky; top: 0; z-index: 200;
-  box-shadow: 0 2px 12px rgba(26,122,60,.35);
-}
-
-.h-brand {
-  display: flex; align-items: center; gap: 12px; flex-shrink: 0;
-}
-
-.h-logo-box {
-  width: 34px; height: 34px;
-  background: rgba(255,255,255,.15);
-  border: 1px solid rgba(255,255,255,.2);
-  border-radius: 7px;
-  display: grid; place-items: center;
-}
-.h-logo-h {
-  font-family: var(--font-head);
-  font-size: 18px; font-weight: 800; color: #fff;
-}
-
-.h-brand-text { }
-.h-brand-name {
-  font-family: var(--font-head);
-  font-size: 14px; font-weight: 700;
-  color: #fff; letter-spacing: .01em; line-height: 1.2;
-}
-.h-brand-sub {
-  font-size: 9.5px; color: rgba(255,255,255,.55);
-  letter-spacing: .1em; text-transform: uppercase;
-}
-
+/* HEADER */
+header { background: var(--brand); height: 58px; display: flex; align-items: center; padding: 0 28px; gap: 20px; position: sticky; top: 0; z-index: 200; box-shadow: 0 2px 12px rgba(26,122,60,.35); }
+.h-brand { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.h-logo-box { width: 34px; height: 34px; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.2); border-radius: 7px; display: grid; place-items: center; }
+.h-logo-h { font-family: var(--font-head); font-size: 18px; font-weight: 800; color: #fff; }
+.h-brand-name { font-family: var(--font-head); font-size: 14px; font-weight: 700; color: #fff; letter-spacing: .01em; line-height: 1.2; }
+.h-brand-sub { font-size: 9.5px; color: rgba(255,255,255,.55); letter-spacing: .1em; text-transform: uppercase; }
 .h-sep { width: 1px; height: 22px; background: rgba(255,255,255,.2); }
-
-.h-scope {
-  display: flex; align-items: center; gap: 7px;
-  background: rgba(255,255,255,.12);
-  border: 1px solid rgba(255,255,255,.2);
-  border-radius: 7px; padding: 5px 12px;
-  font-family: var(--font-body); font-size: 12px;
-  color: rgba(255,255,255,.85); cursor: pointer;
-  transition: background .15s; white-space: nowrap;
-}
+.h-scope { display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); border-radius: 7px; padding: 5px 12px; font-family: var(--font-body); font-size: 12px; color: rgba(255,255,255,.85); cursor: pointer; transition: background .15s; white-space: nowrap; }
 .h-scope:hover { background: rgba(255,255,255,.2); }
 .h-scope-arr { font-size: 9px; color: rgba(255,255,255,.4); }
-
 .h-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.h-date { font-size: 11px; color: rgba(255,255,255,.45); font-family: var(--font-body); font-weight: 300; letter-spacing: .03em; }
 
-.h-date {
-  font-size: 11px; color: rgba(255,255,255,.45);
-  font-family: var(--font-body); font-weight: 300;
-  letter-spacing: .03em;
-}
-
-.h-urgent {
-  display: none; align-items: center; gap: 6px;
-  background: rgba(255,255,255,.15);
-  border: 1px solid rgba(255,255,255,.25);
-  border-radius: 20px; padding: 4px 12px;
-  font-family: var(--font-body); font-size: 11px; font-weight: 700;
-  color: #fff; cursor: pointer;
-  animation: urgpulse 2.5s ease infinite;
-}
-.h-urgent.on { display: flex; }
-@keyframes urgpulse {
-  0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,.3); }
-  50%      { box-shadow: 0 0 0 5px rgba(255,255,255,0); }
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   SCOPE DROPDOWN
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-.scope-drop {
-  position: absolute; top: 58px; left: 28px;
-  width: 268px; background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-  box-shadow: var(--shadow-md); padding: 18px; z-index: 190;
-  opacity: 0; transform: translateY(-6px); pointer-events: none;
-  transition: all .2s ease;
-}
+/* SCOPE DROPDOWN */
+.scope-drop { position: absolute; top: 58px; left: 28px; width: 268px; background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 var(--radius-lg) var(--radius-lg); box-shadow: var(--shadow-md); padding: 18px; z-index: 190; opacity: 0; transform: translateY(-6px); pointer-events: none; transition: all .2s ease; }
 .scope-drop.open { opacity: 1; transform: translateY(0); pointer-events: all; }
-.sd-lbl {
-  font-size: 9px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .12em; color: var(--muted);
-  margin-bottom: 5px; margin-top: 12px; font-family: var(--font-head);
-}
+.sd-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin-bottom: 5px; margin-top: 12px; font-family: var(--font-head); }
 .sd-lbl:first-child { margin-top: 0; }
-.sd-sel {
-  width: 100%; padding: 8px 10px; border-radius: 6px;
-  border: 1px solid var(--border); background: var(--surface2);
-  color: var(--ink); font-family: var(--font-body); font-size: 12px;
-  outline: none; cursor: pointer; appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a7d72'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: right 8px center;
-  transition: border-color .15s;
-}
+.sd-sel { width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--ink); font-family: var(--font-body); font-size: 12px; outline: none; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a7d72'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; transition: border-color .15s; }
 .sd-sel:focus { border-color: var(--brand); }
-.sd-clear {
-  display: none; margin-top: 12px; font-size: 11px; color: var(--muted);
-  text-decoration: underline; background: none; border: none;
-  cursor: pointer; font-family: inherit;
-}
+.sd-clear { display: none; margin-top: 12px; font-size: 11px; color: var(--muted); text-decoration: underline; background: none; border: none; cursor: pointer; font-family: inherit; }
 .sd-clear.on { display: block; }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   FILTER BAR
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-.filter-bar {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 8px 28px; display: flex; align-items: center; gap: 10px;
-  position: sticky; top: 58px; z-index: 150;
-  box-shadow: 0 1px 4px rgba(0,0,0,.04);
-}
-.fb-label {
-  font-family: var(--font-head); font-size: 9.5px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .1em; color: var(--muted);
-}
-.fb-chip {
-  display: none; align-items: center; gap: 7px;
-  background: var(--brand-lt); border: 1px solid var(--brand-bdr);
-  color: var(--brand); border-radius: 20px; padding: 3px 11px;
-  font-size: 11px; font-weight: 600;
-}
+/* FILTER BAR */
+.filter-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 28px; display: flex; align-items: center; gap: 10px; position: sticky; top: 58px; z-index: 150; box-shadow: 0 1px 4px rgba(0,0,0,.02); }
+.fb-label { font-family: var(--font-head); font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+.fb-chip { display: none; align-items: center; gap: 7px; background: var(--brand-lt); border: 1px solid var(--brand-bdr); color: var(--brand); border-radius: 20px; padding: 3px 11px; font-size: 11px; font-weight: 600; }
 .fb-chip.on { display: flex; }
-.fb-clear {
-  display: none; font-size: 11px; color: var(--muted); cursor: pointer;
-  background: none; border: none; font-family: inherit; text-decoration: underline;
-}
+.fb-clear { display: none; font-size: 11px; color: var(--muted); cursor: pointer; background: none; border: none; font-family: inherit; text-decoration: underline; }
 .fb-clear.on { display: block; }
 .fb-all { font-size: 11px; color: var(--muted-lt); font-style: italic; }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   TABS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-.tabs-wrap {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  position: sticky; top: 95px; z-index: 140;
-}
-.tabs {
-  display: flex; padding: 0 28px;
-  overflow-x: auto; scrollbar-width: none;
-}
+/* TABS */
+.tabs-wrap { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 95px; z-index: 140; }
+.tabs { display: flex; padding: 0 28px; overflow-x: auto; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
-
-.tab {
-  display: flex; align-items: center; gap: 7px;
-  padding: 13px 20px;
-  background: none; border: none; border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  font-family: var(--font-head); font-size: 13px; font-weight: 600;
-  color: var(--muted); cursor: pointer;
-  transition: all .15s; white-space: nowrap; letter-spacing: .01em;
-}
+.tab { display: flex; align-items: center; gap: 7px; padding: 13px 20px; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: var(--font-head); font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; transition: all .15s; white-space: nowrap; letter-spacing: .01em; }
 .tab:hover { color: var(--ink); }
 .tab.on { color: var(--brand); border-bottom-color: var(--brand); }
 .tab-icon { font-size: 14px; }
-.tab-badge {
-  background: var(--brand); color: #fff;
-  font-size: 9px; font-weight: 700;
-  min-width: 16px; height: 16px; border-radius: 8px;
-  display: none; align-items: center; justify-content: center;
-  padding: 0 4px;
-}
-.tab-badge.on { display: flex; }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   MAIN
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* MAIN */
 main { padding: 24px 28px; max-width: 1600px; margin: 0 auto; }
 .page { display: none; animation: pfade .2s ease; }
 .page.on { display: block; }
 @keyframes pfade { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:translateY(0)} }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   KPI ROW
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-.kpi-row {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px; margin-bottom: 20px;
-}
-.kpi {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 18px 20px; position: relative;
-  transition: box-shadow .15s, transform .15s;
-  overflow: hidden;
-}
-.kpi:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
-.kpi::after {
-  content: ''; position: absolute;
-  bottom: 0; left: 0; right: 0; height: 3px;
-  background: var(--k-accent, var(--border));
-}
-.k-icon {
-  width: 32px; height: 32px; border-radius: 8px;
-  display: grid; place-items: center; font-size: 15px;
-  margin-bottom: 12px;
-  background: var(--k-icon-bg, var(--warm));
-}
-.k-label {
-  font-family: var(--font-head); font-size: 9.5px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .1em;
-  color: var(--muted); margin-bottom: 6px;
-}
-.k-value {
-  font-family: var(--font-head); font-size: 26px; font-weight: 800;
-  color: var(--ink); line-height: 1; margin-bottom: 7px;
-  letter-spacing: -.01em;
-}
-.k-ctx { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+/* KPI ROW */
+.kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; position: relative; transition: box-shadow .15s, transform .15s; overflow: hidden; box-shadow: var(--shadow); }
+.kpi:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.kpi::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 4px; background: var(--k-accent, var(--border)); }
+.k-icon { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; font-size: 16px; margin-bottom: 12px; background: var(--k-icon-bg, var(--warm)); }
+.k-label { font-family: var(--font-head); font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 6px; }
+.k-value { font-family: var(--font-head); font-size: 26px; font-weight: 800; color: var(--ink); line-height: 1; margin-bottom: 7px; letter-spacing: -.01em; }
+.k-ctx { font-size: 11.5px; color: var(--muted); display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-weight: 500;}
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   CARDS & CHARTS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-.g2a { display: grid; grid-template-columns: 3fr 2fr; gap: 14px; margin-bottom: 16px; }
-.g2  { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow);
-  transition: box-shadow .15s;
-}
+/* CARDS & CHARTS */
+.g2a { display: grid; grid-template-columns: 3fr 2fr; gap: 16px; margin-bottom: 24px; }
+.g2  { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); transition: box-shadow .15s; }
 .card:hover { box-shadow: var(--shadow-md); }
-
-.card-head {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface2);
-  display: flex; align-items: flex-start; justify-content: space-between;
-}
-.c-title {
-  font-family: var(--font-head); font-size: 13px; font-weight: 700;
-  color: var(--ink); letter-spacing: .01em;
-}
-.c-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
-.c-body { padding: 18px 20px; }
+.card-head { padding: 18px 24px; border-bottom: 1px solid var(--border); background: var(--surface); display: flex; align-items: flex-start; justify-content: space-between; }
+.c-title { font-family: var(--font-head); font-size: 14px; font-weight: 700; color: var(--ink); letter-spacing: .01em; }
+.c-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.c-body { padding: 18px 24px; }
 .ch { position: relative; }
-.h180{height:180px} .h220{height:220px} .h240{height:240px} .h260{height:260px}
+.h180{height:180px} .h200{height:200px} .h240{height:240px} .h260{height:260px}
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   TABLE CARD
+   BEAUTIFUL TABLES & PAGINATION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-.tbl-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); overflow: hidden;
-  box-shadow: var(--shadow);
-}
-.tbl-head {
-  padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
-  border-bottom: 1px solid var(--border); background: var(--surface2);
-}
-.th-title {
-  font-family: var(--font-head); font-size: 13px; font-weight: 700;
-  color: var(--ink); letter-spacing: .01em;
-}
-.th-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
-.th-right { display: flex; gap: 8px; }
-
-.scr { overflow-y: auto; overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
-.scr::-webkit-scrollbar { width: 4px; height: 4px; }
-.scr::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-.h360{max-height:360px} .h400{max-height:400px} .h480{max-height:480px} .h520{max-height:520px}
+.tbl-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
+.tbl-head { padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--surface); }
+.th-title { font-family: var(--font-head); font-size: 14px; font-weight: 700; color: var(--ink); letter-spacing: .01em; }
+.th-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.scr { overflow-x: auto; }
 
 table.dt { width: 100%; border-collapse: collapse; }
-table.dt thead { position: sticky; top: 0; z-index: 3; }
-table.dt thead th {
-  padding: 9px 16px; text-align: left;
-  font-family: var(--font-head); font-size: 9.5px; font-weight: 700;
-  letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
-  background: var(--warm); border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
-table.dt tbody td { padding: 11px 16px; border-bottom: 1px solid var(--border); font-size: 12px; }
-table.dt tbody tr:last-child td { border-bottom: none; }
-table.dt tbody tr { cursor: pointer; transition: background .1s; }
+table.dt thead th { background: var(--surface2); color: var(--muted); font-size: 10.5px; font-family: var(--font-head); font-weight: 700; letter-spacing: 0.06em; padding: 14px 24px; border-bottom: 1px solid var(--border); text-transform: uppercase; text-align: left; white-space: nowrap; }
+table.dt tbody td { padding: 16px 24px; font-size: 13px; color: var(--ink2); border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+table.dt tbody tr { transition: background-color 0.15s ease; }
 table.dt tbody tr:hover td { background: var(--surface2); }
+table.dt tbody tr:last-child td { border-bottom: none; }
 table.dt tbody tr.tr-red    td:first-child { border-left: 3px solid var(--red); }
 table.dt tbody tr.tr-amber  td:first-child { border-left: 3px solid var(--amber); }
 table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green); }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   TOOLBAR
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-.toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
-.t-sel {
-  padding: 7px 28px 7px 10px; border: 1px solid var(--border);
-  border-radius: 7px; font-family: var(--font-body); font-size: 12px;
-  background: var(--surface); color: var(--ink); outline: none; cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a7d72'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: right 8px center;
-  transition: border-color .15s;
-}
-.t-sel:focus { border-color: var(--brand); outline: none; }
-.t-inp {
-  padding: 7px 10px; border: 1px solid var(--border);
-  border-radius: 7px; font-family: var(--font-body); font-size: 12px;
-  background: var(--surface); color: var(--ink); outline: none;
-  width: 200px; transition: border-color .15s;
-}
-.t-inp:focus { border-color: var(--brand); }
-.t-cnt { font-size: 11px; color: var(--muted); font-weight: 700; margin-left: auto; }
+/* Pagination Components */
+.pagination { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; background: var(--surface); border-top: 1px solid var(--border); }
+.pag-info { font-size: 13px; color: var(--muted); }
+.pag-info strong { color: var(--ink); font-weight: 600; }
+.pag-controls { display: flex; align-items: center; gap: 8px; }
+.pag-btn { padding: 8px 16px; background: var(--surface); border: 1px solid var(--border2); border-radius: 6px; font-family: var(--font-body); font-size: 13px; font-weight: 600; color: var(--ink2); cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+.pag-btn:hover:not(:disabled) { background: var(--surface2); border-color: var(--muted-lt); color: var(--ink); }
+.pag-btn:disabled { opacity: 0.4; cursor: not-allowed; background: var(--surface2); box-shadow: none; }
+.pag-page-num { font-size: 13px; font-weight: 600; color: var(--ink); min-width: 80px; text-align: center; }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   BADGES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-.b {
-  display: inline-flex; align-items: center; padding: 2px 8px;
-  border-radius: 4px; font-size: 10.5px; font-weight: 600;
-  font-family: var(--font-head); letter-spacing: .02em;
-}
+/* TOOLBAR */
+.toolbar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.t-sel { padding: 9px 32px 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: var(--font-body); font-size: 13px; background: var(--surface); color: var(--ink); outline: none; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a7d72'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; transition: border-color .15s; }
+.t-sel:focus { border-color: var(--brand); outline: none; }
+.tbl-toolbar { display:flex;gap:12px;padding:12px 24px;border-bottom:1px solid var(--border);background:var(--surface);align-items:center;flex-wrap:wrap; }
+.tbl-srch { flex:1;min-width:140px;max-width:320px;padding:8px 12px 8px 36px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238a7d72' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 12px center;color:var(--ink);outline:none;transition:border-color .15s; }
+.tbl-srch:focus { border-color:var(--brand); box-shadow: 0 0 0 3px rgba(26,122,60,0.1); }
+.tbl-export { display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);color:var(--ink2);border:1px solid var(--border2);border-radius:8px;font-family:var(--font-head);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.03em;transition:all .15s;margin-left:auto;white-space:nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.02);}
+.tbl-export:hover { background:var(--surface2); border-color:var(--muted-lt); color:var(--ink); }
+
+/* BADGES */
+.b { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 10.5px; font-weight: 700; font-family: var(--font-head); letter-spacing: .02em; }
 .b-g { background: var(--green-lt);  color: var(--green);  border: 1px solid var(--green-bdr); }
 .b-r { background: var(--red-lt);    color: var(--red);    border: 1px solid var(--red-bdr); }
 .b-a { background: var(--amber-lt);  color: var(--amber);  border: 1px solid var(--amber-bdr); }
-.b-m { background: var(--warm);      color: var(--muted);  border: 1px solid var(--border); }
+.b-m { background: var(--surface2);  color: var(--muted);  border: 1px solid var(--border); }
 
-.pill {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 9px; border-radius: 20px;
-  font-size: 10.5px; font-weight: 700;
-  font-family: var(--font-head); letter-spacing: .02em;
-}
+.pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; font-family: var(--font-head); letter-spacing: .02em; }
 .p-star  { background: #eef8f4;       color: #0d7a4a;       border: 1px solid rgba(13,122,74,.2); }
 .p-grow  { background: var(--green-lt); color: var(--green);  border: 1px solid var(--green-bdr); }
 .p-dec   { background: var(--amber-lt); color: var(--amber);  border: 1px solid var(--amber-bdr); }
 .p-crit  { background: var(--red-lt);   color: var(--red);    border: 1px solid var(--red-bdr); }
-.p-dark  { background: var(--warm);     color: var(--muted);  border: 1px solid var(--border); }
+.p-dark  { background: var(--surface2); color: var(--muted);  border: 1px solid var(--border); }
 .p-new   { background: var(--blue-lt);  color: var(--blue);   border: 1px solid rgba(30,72,153,.2); }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   INSIGHTS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-.i-summary { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-.i-sum {
-  flex: 1; min-width: 180px; padding: 16px 20px;
-  border-radius: var(--radius); border: 1px solid;
-  display: flex; align-items: center; gap: 14px;
-}
-.i-sum.crit { background: var(--red-lt);   border-color: var(--red-bdr);   }
-.i-sum.warn { background: var(--amber-lt); border-color: var(--amber-bdr); }
-.i-sum.pos  { background: var(--green-lt); border-color: var(--green-bdr); }
-.is-num {
-  font-family: var(--font-head); font-size: 36px; font-weight: 800; line-height: 1;
-}
-.i-sum.crit .is-num { color: var(--red);   }
-.i-sum.warn .is-num { color: var(--amber); }
-.i-sum.pos  .is-num { color: var(--green); }
-.is-lbl { font-family: var(--font-head); font-size: 12px; font-weight: 700; margin-bottom: 2px; }
-.is-sub { font-size: 11px; color: var(--muted); }
-.i-sum.crit .is-lbl { color: var(--red);   }
-.i-sum.warn .is-lbl { color: var(--amber); }
-.i-sum.pos  .is-lbl { color: var(--green); }
-
-.ig { display: grid; gap: 8px; }
-.ig-group-lbl {
-  font-family: var(--font-head); font-size: 9px; font-weight: 800;
-  text-transform: uppercase; letter-spacing: .14em; color: var(--muted);
-  margin: 18px 0 8px; display: flex; align-items: center; gap: 10px;
-}
-.ig-group-lbl::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-
-.ic {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 16px 18px;
-  display: flex; gap: 14px; align-items: flex-start;
-  border-left: 3px solid var(--border);
-  transition: box-shadow .15s;
-}
-.ic:hover { box-shadow: var(--shadow-md); }
-.ic.crit { border-left-color: var(--red); }
-.ic.warn { border-left-color: var(--amber); }
-.ic.pos  { border-left-color: var(--green); }
-.ic-icon {
-  width: 36px; height: 36px; border-radius: 9px;
-  display: grid; place-items: center; font-size: 17px; flex-shrink: 0;
-}
-.ic.crit .ic-icon { background: var(--red-lt);   }
-.ic.warn .ic-icon { background: var(--amber-lt); }
-.ic.pos  .ic-icon { background: var(--green-lt); }
-.ic-cat {
-  font-family: var(--font-head); font-size: 9px; font-weight: 800;
-  text-transform: uppercase; letter-spacing: .1em;
-  color: var(--muted); margin-bottom: 3px;
-}
-.ic-title { font-family: var(--font-head); font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
-.ic-detail { font-size: 12px; color: var(--ink2); line-height: 1.55; margin-bottom: 8px; }
-.ic-action {
-  font-family: var(--font-head); font-size: 11px; font-weight: 700;
-  color: var(--brand); background: var(--brand-lt);
-  padding: 4px 10px; border-radius: 5px; display: inline-block;
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   TRAFFIC LIGHTS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-.tl-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 18px; }
-.tl {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 28px 24px; text-align: center;
-  box-shadow: var(--shadow); position: relative; overflow: hidden;
-}
-.tl::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
-  background: var(--tl-c, var(--border));
-}
-.tl-emoji { font-size: 32px; margin-bottom: 14px; display: block; }
-.tl-val {
-  font-family: var(--font-head); font-size: 34px; font-weight: 800;
-  letter-spacing: -.02em; color: var(--ink); line-height: 1; margin-bottom: 6px;
-}
-.tl-lbl {
-  font-family: var(--font-head); font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .12em;
-  color: var(--muted); margin-bottom: 4px;
-}
-.tl-tgt { font-size: 11px; color: var(--muted-lt); margin-bottom: 10px; }
-.tl-sta {
-  font-family: var(--font-head); font-size: 12px; font-weight: 700;
-  padding: 5px 14px; border-radius: 20px; display: inline-block;
-}
-.tl-sta.ok   { background: var(--green-lt); color: var(--green); border: 1px solid var(--green-bdr); }
-.tl-sta.warn { background: var(--amber-lt); color: var(--amber); border: 1px solid var(--amber-bdr); }
-.tl-sta.bad  { background: var(--red-lt);   color: var(--red);   border: 1px solid var(--red-bdr); }
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   PANEL
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index:400; display: none; backdrop-filter: blur(2px); }
-.overlay.open { display: block; }
-.panel {
-  position: fixed; top: 0; right: 0; bottom: 0; width: 580px;
-  background: var(--surface); border-left: 1px solid var(--border); z-index: 401;
-  overflow-y: auto; transform: translateX(100%);
-  transition: transform .28s cubic-bezier(.4,0,.2,1);
-  box-shadow: -8px 0 40px rgba(0,0,0,.15);
-}
-.panel.open { transform: translateX(0); }
-.p-header {
-  background: var(--brand); padding: 24px;
-  position: sticky; top: 0; z-index: 2;
-}
-.p-close {
-  position: absolute; top: 16px; right: 16px; width: 30px; height: 30px;
-  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.2);
-  border-radius: 7px; display: grid; place-items: center;
-  cursor: pointer; font-size: 14px; color: #fff; transition: background .15s;
-}
-.p-close:hover { background: rgba(255,255,255,.25); }
-.p-name {
-  font-family: var(--font-head); font-size: 19px; font-weight: 800;
-  color: #fff; margin-bottom: 3px; padding-right: 36px; letter-spacing: .01em;
-}
-.p-meta { font-size: 11px; color: rgba(255,255,255,.6); }
-.p-body { padding: 20px 22px; }
-.p-kpis { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 18px; }
-.p-kpi { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
-.pk-v { font-family: var(--font-head); font-size: 19px; font-weight: 800; color: var(--ink); }
-.pk-l {
-  font-family: var(--font-head); font-size: 8.5px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-top: 4px;
-}
-.p-sec { margin-bottom: 18px; }
-.p-sec-t {
-  font-family: var(--font-head); font-size: 9.5px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .1em;
-  color: var(--muted); margin-bottom: 10px;
-  padding-bottom: 6px; border-bottom: 1px solid var(--border);
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   MISC
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* MISC */
 .mono { font-family: 'Courier New', monospace; }
-
-/* ── TABLE TOOLBAR ── */
-.tbl-toolbar { display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2);align-items:center;flex-wrap:wrap; }
-.tbl-srch { flex:1;min-width:140px;max-width:320px;padding:6px 10px 6px 32px;border:1px solid var(--border);border-radius:7px;font-family:var(--font-body);font-size:12px;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='%238a7d72' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center;color:var(--ink);outline:none;transition:border-color .15s; }
-.tbl-srch:focus { border-color:var(--brand); }
-.tbl-export { display:flex;align-items:center;gap:5px;padding:6px 12px;background:var(--brand);color:#fff;border:none;border-radius:7px;font-family:var(--font-head);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.03em;transition:background .15s;margin-left:auto;white-space:nowrap; }
-.tbl-export:hover { background:var(--brand-dk); }
-.tbl-cnt2 { font-size:10.5px;color:var(--muted);font-weight:600;white-space:nowrap; }
-
-/* ── SORTABLE HEADERS ── */
 .sth { cursor:pointer;user-select:none;transition:background .1s;white-space:nowrap; }
 .sth:hover { background:var(--border) !important; color:var(--ink) !important; }
 .sth.asc  { color:var(--brand) !important; }
 .sth.desc { color:var(--brand) !important; }
-.sort-arr { display:inline-block;margin-left:4px;font-size:9px;opacity:.4;vertical-align:middle; }
+.sort-arr { display:inline-block;margin-left:4px;font-size:10px;opacity:.4;vertical-align:middle; }
 .sth.asc  .sort-arr { opacity:1;content:'▲'; }
 .sth.desc .sort-arr { opacity:1; }
-
-/* ── NOTIFICATION ── */
-.notif-group-lbl { font-family:var(--font-head);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin:16px 0 8px;display:flex;align-items:center;gap:8px; }
-.notif-group-lbl::after { content:'';flex:1;height:1px;background:var(--border); }
-.notif-card { background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;display:flex;gap:12px;margin-bottom:8px;border-left:3px solid var(--border);transition:box-shadow .15s; }
-.notif-card:hover { box-shadow:var(--shadow-md); }
-.notif-card.crit { border-left-color:var(--red); }
-.notif-card.warn { border-left-color:var(--amber); }
-.notif-card.pos  { border-left-color:var(--green); }
-.notif-icon { width:34px;height:34px;border-radius:8px;display:grid;place-items:center;font-size:16px;flex-shrink:0; }
-.notif-card.crit .notif-icon { background:var(--red-lt); }
-.notif-card.warn .notif-icon { background:var(--amber-lt); }
-.notif-card.pos  .notif-icon { background:var(--green-lt); }
-.notif-cat { font-family:var(--font-head);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:3px; }
-.notif-title { font-family:var(--font-head);font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:3px; }
-.notif-detail { font-size:11.5px;color:var(--ink2);line-height:1.5;margin-bottom:6px; }
-.notif-action { font-family:var(--font-head);font-size:10.5px;font-weight:700;color:var(--brand);background:var(--brand-lt);padding:3px 9px;border-radius:5px;display:inline-block; }
-.loading { display: flex; align-items: center; justify-content: center; padding: 36px; color: var(--muted); gap: 10px; }
-.spin { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--brand); border-radius: 50%; animation: sp .6s linear infinite; }
+.loading { display: flex; align-items: center; justify-content: center; padding: 48px; color: var(--muted); gap: 10px; }
+.spin { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--brand); border-radius: 50%; animation: sp .6s linear infinite; }
 @keyframes sp { to { transform: rotate(360deg); } }
 
-::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* TRAFFIC LIGHTS */
+.tl-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 24px; }
+.tl { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 32px 24px; text-align: center; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+.tl::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--tl-c, var(--border)); }
+.tl-emoji { font-size: 34px; margin-bottom: 16px; display: block; }
+.tl-val { font-family: var(--font-head); font-size: 36px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); line-height: 1; margin-bottom: 8px; }
+.tl-lbl { font-family: var(--font-head); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin-bottom: 6px; }
+.tl-tgt { font-size: 12px; color: var(--muted-lt); margin-bottom: 14px; }
+.tl-sta { font-family: var(--font-head); font-size: 12px; font-weight: 700; padding: 5px 14px; border-radius: 20px; display: inline-block; }
+.tl-sta.ok   { background: var(--green-lt); color: var(--green); border: 1px solid var(--green-bdr); }
+.tl-sta.warn { background: var(--amber-lt); color: var(--amber); border: 1px solid var(--amber-bdr); }
+.tl-sta.bad  { background: var(--red-lt);   color: var(--red);   border: 1px solid var(--red-bdr); }
+
+/* PANEL OVERLAY */
+.overlay { position: fixed; inset: 0; background: rgba(15,23,42,.4); z-index:400; display: none; backdrop-filter: blur(3px); }
+.overlay.open { display: block; }
+.panel { position: fixed; top: 0; right: 0; bottom: 0; width: 600px; background: var(--surface); border-left: 1px solid var(--border); z-index: 401; overflow-y: auto; transform: translateX(100%); transition: transform .3s cubic-bezier(.4,0,.2,1); box-shadow: -8px 0 40px rgba(0,0,0,.15); }
+.panel.open { transform: translateX(0); }
+.p-header { background: var(--brand); padding: 28px 24px; position: sticky; top: 0; z-index: 2; }
+.p-close { position: absolute; top: 20px; right: 20px; width: 32px; height: 32px; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.2); border-radius: 8px; display: grid; place-items: center; cursor: pointer; font-size: 14px; color: #fff; transition: background .15s; }
+.p-close:hover { background: rgba(255,255,255,.25); }
+.p-name { font-family: var(--font-head); font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 4px; padding-right: 40px; letter-spacing: .01em; }
+.p-meta { font-size: 13px; color: rgba(255,255,255,.7); }
+.p-body { padding: 24px; }
 
 @media(max-width:1100px) { .kpi-row { grid-template-columns: repeat(3,1fr); } .g2a,.g2 { grid-template-columns: 1fr; } .tl-row { grid-template-columns: 1fr; } }
-@media(max-width:650px)  { .kpi-row { grid-template-columns: 1fr 1fr; } .panel { width: 100%; } main,header,.filter-bar,.tabs-wrap { padding-left: 14px; padding-right: 14px; } }
+@media(max-width:650px)  { .kpi-row { grid-template-columns: 1fr 1fr; } .panel { width: 100%; } main,header,.filter-bar,.tabs-wrap { padding-left: 16px; padding-right: 16px; } }
 </style>
 </head>
 <body>
 
-<!-- ─── BOOT ─── -->
 <div id="boot">
   <div class="boot-inner">
     <div class="boot-brand">Heritage Foods Ltd.</div>
@@ -678,7 +264,6 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
   </div>
 </div>
 
-<!-- ─── HEADER ─── -->
 <header>
   <div class="h-brand">
     <div class="h-logo-box"><div class="h-logo-h">H</div></div>
@@ -687,15 +272,11 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
       <div class="h-brand-sub">Procurement Intelligence</div>
     </div>
   </div>
-
   <div class="h-sep"></div>
-
   <button class="h-scope" id="scopeBtn" onclick="toggleScope()">
     <span id="scopeLabel">All India</span>
     <span class="h-scope-arr">▾</span>
   </button>
-
-  <!-- Scope dropdown -->
   <div class="scope-drop" id="scopeDrop">
     <div class="sd-lbl">Zone</div>
     <select class="sd-sel" id="gfZone" onchange="applyFilter()"><option value="">All Zones</option></select>
@@ -705,27 +286,18 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
     <select class="sd-sel" id="gfPlant" onchange="applyFilter()"><option value="">All Plants</option></select>
     <button class="sd-clear" id="sdClear" onclick="clearFilter()">Clear filter</button>
   </div>
-
   <div class="h-right">
-    <button class="h-urgent" id="hUrgent" onclick="openNotifPanel()">
-      ⚠ <span id="urgN">0</span> urgent
-    </button>
-    <button id="bellBtn" onclick="openNotifPanel()" style="position:relative;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;transition:background .15s;flex-shrink:0" title="Insights &amp; Alerts">
-      🔔
-      <span id="bellBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:8px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:none;align-items:center;justify-content:center;padding:0 3px;font-family:var(--font-head)">0</span>
-    </button>
     <div class="h-date" id="hDate">—</div>
     <div class="h-user" id="hUser" style="display:flex;align-items:center;gap:8px">
       <div style="text-align:right">
         <div style="font-family:var(--font-head);font-size:12px;font-weight:700;color:#fff;line-height:1.2" id="hUserName">—</div>
-        <div style="font-size:10px;color:rgba(255,255,255,.5);letter-spacing:.05em;text-transform:uppercase" id="hUserRole">—</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.6);letter-spacing:.05em;text-transform:uppercase" id="hUserRole">—</div>
       </div>
-      <a href="/logout" style="display:grid;place-items:center;width:28px;height:28px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:7px;font-size:12px;color:rgba(255,255,255,.7);text-decoration:none;transition:background .15s" title="Sign out" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">⏏</a>
+      <a href="/logout" style="display:grid;place-items:center;width:32px;height:32px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);border-radius:8px;font-size:14px;color:rgba(255,255,255,.8);text-decoration:none;transition:background .15s" title="Sign out" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">⏏</a>
     </div>
   </div>
 </header>
 
-<!-- ─── FILTER BAR ─── -->
 <div class="filter-bar">
   <span class="fb-label">View</span>
   <span class="fb-chip" id="fbChip"><span>●</span> <span id="fbChipTxt"></span></span>
@@ -733,275 +305,172 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
   <span class="fb-all" id="fbAll">All India — full company view</span>
 </div>
 
-<!-- ─── SCOPE BANNER (hidden for CXO/admin) ─── -->
-<div id="scopeBanner" style="display:none;background:var(--brand-lt);border-bottom:1px solid var(--brand-bdr);padding:7px 28px;font-size:11px;color:var(--brand);font-family:var(--font-head);font-weight:600;letter-spacing:.03em">
+<div id="scopeBanner" style="display:none;background:var(--brand-lt);border-bottom:1px solid var(--brand-bdr);padding:9px 28px;font-size:12px;color:var(--brand);font-family:var(--font-head);font-weight:700;letter-spacing:.03em">
   <span id="scopeBannerText"></span>
 </div>
 
-<!-- ─── TABS ─── -->
 <div class="tabs-wrap">
   <div class="tabs">
-    <button class="tab on" onclick="switchTab('overview')">
-      <span class="tab-icon">📊</span> Overview
-    </button>
-    <button class="tab" onclick="switchTab('hpc')">
-      <span class="tab-icon">🏭</span> HPC Drilldown
-    </button>
-    <button class="tab" onclick="switchTab('farmers')">
-      <span class="tab-icon">👨‍🌾</span> Farmer Analytics
-    </button>
-    <button class="tab" id="tabQuality" onclick="switchTab('quality')">
-      <span class="tab-icon">🧪</span> Quality &amp; Cost
-    </button>
+    <button class="tab on" onclick="switchTab('overview')"><span class="tab-icon">📊</span> Overview</button>
+    <button class="tab" onclick="switchTab('hpc')"><span class="tab-icon">🏭</span> HPC Drilldown</button>
+    <button class="tab" onclick="switchTab('farmers')"><span class="tab-icon">👨‍🌾</span> Farmer Analytics</button>
+    <button class="tab" id="tabQuality" onclick="switchTab('quality')"><span class="tab-icon">🧪</span> Quality &amp; Cost</button>
   </div>
 </div>
 
 <main>
 
-<!-- ══════════════ OVERVIEW ══════════════ -->
 <div class="page on" id="pg-overview">
   <div class="kpi-row" id="ovKpis"><div class="loading"><div class="spin"></div></div></div>
-
   <div class="g2a">
     <div class="card">
-      <div class="card-head">
-        <div>
-          <div class="c-title">Procurement Trend</div>
-          <div class="c-sub">Daily litres/day · active farmers — last 90 days</div>
-        </div>
-      </div>
+      <div class="card-head"><div><div class="c-title">Procurement Trend</div><div class="c-sub">Daily litres/day · active farmers — last 90 days</div></div></div>
       <div class="c-body"><div class="ch h260"><canvas id="cTrend"></canvas></div></div>
     </div>
     <div class="card">
-      <div class="card-head">
-        <div>
-          <div class="c-title">Zone Performance</div>
-          <div class="c-sub">MTD vs same period last year</div>
-        </div>
-      </div>
+      <div class="card-head"><div><div class="c-title">Zone Performance</div><div class="c-sub">MTD vs same period last year</div></div></div>
       <div class="c-body"><div class="ch h260"><canvas id="cZone"></canvas></div></div>
     </div>
   </div>
-
   <div class="tbl-card">
     <div class="tbl-head">
-      <div>
-        <div class="th-title">Region Scorecard</div>
-        <div class="th-sub">MTD vs last month and last year · <span style="color:var(--red)">red</span> = declining &gt;20% YoY</div>
-      </div>
+      <div><div class="th-title">Region Scorecard</div><div class="th-sub">MTD vs last month and last year</div></div>
     </div>
     <div class="tbl-toolbar">
-      <input class="tbl-srch" id="srchRegion" placeholder="Search all columns…" oninput="renderOverview()">
-      <span class="tbl-cnt2" id="regCnt"></span>
-      <button class="tbl-export" onclick="exportCSV('tbRegion','region_scorecard')">⬇ Export CSV</button>
+      <input class="tbl-srch" id="srchRegion" placeholder="Search all columns…" oninput="resetPage('overview'); renderOverview()">
+      <button class="tbl-export" onclick="exportCSV('tbRegion','region_scorecard','renderOverview','overview')">⬇ Export CSV</button>
     </div>
-    <div class="scr h380">
+    <div class="scr">
       <table class="dt">
         <thead><tr>
-          <th>Region</th><th>Zone</th><th>MTD L/Day</th>
-          <th>vs Last Mth</th><th>vs Last Year</th>
+          <th>Region</th><th>Zone</th><th>MTD L/Day</th><th>vs Last Mth</th><th>vs Last Year</th>
           <th>Farmers</th><th>Dark HPCs</th><th>Avg FAT%</th><th>Payout</th>
         </tr></thead>
         <tbody id="tbRegion"></tbody>
       </table>
     </div>
-  </div>
+    <div id="pagRegion"></div> </div>
 </div>
 
-<!-- insights removed — now notification panel -->
-
-<!-- ══════════════ HPC ══════════════ -->
 <div class="page" id="pg-hpc">
   <div class="kpi-row" id="hpcKpis"><div class="loading"><div class="spin"></div></div></div>
-
   <div class="g2">
     <div class="card">
-      <div class="card-head">
-        <div><div class="c-title">Growth Segments</div><div class="c-sub">YoY performance breakdown</div></div>
-      </div>
+      <div class="card-head"><div><div class="c-title">Growth Segments</div><div class="c-sub">YoY performance breakdown</div></div></div>
       <div class="c-body"><div class="ch h200"><canvas id="cHpcSeg"></canvas></div></div>
     </div>
     <div class="card">
-      <div class="card-head">
-        <div><div class="c-title">Farmer Retention Health</div><div class="c-sub">Center segments by churn &amp; consistency</div></div>
-      </div>
+      <div class="card-head"><div><div class="c-title">Farmer Retention Health</div><div class="c-sub">Center segments by churn &amp; consistency</div></div></div>
       <div class="c-body"><div class="ch h200"><canvas id="cFhSeg"></canvas></div></div>
     </div>
   </div>
-
-  <!-- SUB-TABS: Volume view vs Farmer view -->
-  <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--border)">
-    <button class="hpc-sub-tab on" id="hstVolume" onclick="switchHpcView('volume')"
-      style="padding:9px 20px;background:none;border:none;font-family:var(--font-head);font-size:12px;font-weight:700;color:var(--brand);border-bottom:2px solid var(--brand);margin-bottom:-2px;cursor:pointer;letter-spacing:.02em">
-      📦 Volume &amp; Growth
-    </button>
-    <button class="hpc-sub-tab" id="hstFarmer" onclick="switchHpcView('farmer')"
-      style="padding:9px 20px;background:none;border:none;font-family:var(--font-head);font-size:12px;font-weight:700;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;letter-spacing:.02em">
-      👨‍🌾 Farmer Strength
-    </button>
+  <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border)">
+    <button class="hpc-sub-tab on" id="hstVolume" onclick="switchHpcView('volume')" style="padding:10px 24px;background:none;border:none;font-family:var(--font-head);font-size:13px;font-weight:700;color:var(--brand);border-bottom:2px solid var(--brand);margin-bottom:-2px;cursor:pointer;letter-spacing:.02em">📦 Volume &amp; Growth</button>
+    <button class="hpc-sub-tab" id="hstFarmer" onclick="switchHpcView('farmer')" style="padding:10px 24px;background:none;border:none;font-family:var(--font-head);font-size:13px;font-weight:700;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;letter-spacing:.02em">👨‍🌾 Farmer Strength</button>
   </div>
-
-  <div class="toolbar" style="margin-bottom:12px">
-    <select class="t-sel" id="hpcStat" onchange="renderHpcTable()">
-      <option value="">All Status</option>
-      <option value="star">⭐ Star (YoY &gt;30%)</option>
-      <option value="growing">📈 Growing</option>
-      <option value="declining">📉 Declining</option>
-      <option value="critical">🔴 Critical (&lt;-30%)</option>
-      <option value="dark">⚫ Gone Dark</option>
+  <div class="toolbar" style="margin-bottom:16px">
+    <select class="t-sel" id="hpcStat" onchange="resetPage('hpc'); renderHpcTable()">
+      <option value="">All Status</option><option value="star">⭐ Star (YoY &gt;30%)</option><option value="growing">📈 Growing</option><option value="declining">📉 Declining</option><option value="critical">🔴 Critical (&lt;-30%)</option><option value="dark">⚫ Gone Dark</option>
     </select>
-    <select class="t-sel" id="hpcReg" onchange="renderHpcTable()"><option value="">All Regions</option></select>
+    <select class="t-sel" id="hpcReg" onchange="resetPage('hpc'); renderHpcTable()"><option value="">All Regions</option></select>
   </div>
-
   <div class="tbl-card">
     <div class="tbl-toolbar">
-      <input class="tbl-srch" id="hpcSrch" placeholder="Search all columns…" oninput="renderHpcTable()">
-      <span class="tbl-cnt2" id="hpcCnt2"></span>
-      <button class="tbl-export" onclick="exportCSV(_hpcView==='volume'?'tbHpcV':'tbHpcF','hpc_'+_hpcView)">⬇ Export CSV</button>
+      <input class="tbl-srch" id="hpcSrch" placeholder="Search all columns…" oninput="resetPage('hpc'); renderHpcTable()">
+      <button class="tbl-export" onclick="exportCSV(_hpcView==='volume'?'tbHpcV':'tbHpcF','hpc_'+_hpcView,'renderHpcTable','hpc')">⬇ Export CSV</button>
     </div>
-    <div class="scr h500">
-      <!-- Volume & Growth view -->
+    <div class="scr">
       <table class="dt" id="tbHpcVolume">
-        <thead class="sth" data-tid="tbRegion" data-col="0" onclick="sortTable('tbRegion',0)"><tr>
-          <th>Center Name<span class="sort-arr" id="sa_tbRegion_0"></span></th><th class="sth" data-tid="tbRegion" data-col="1" onclick="sortTable('tbRegion',1)">Region<span class="sort-arr" id="sa_tbRegion_1"></span></th><th class="sth" data-tid="tbRegion" data-col="2" onclick="sortTable('tbRegion',2)">Zone<span class="sort-arr" id="sa_tbRegion_2"></span></th>
-          <th class="sth" data-tid="tbRegion" data-col="3" onclick="sortTable('tbRegion',3)">MTD L/Day<span class="sort-arr" id="sa_tbRegion_3"></span></th><th class="sth" data-tid="tbRegion" data-col="4" onclick="sortTable('tbRegion',4)">LM L/Day<span class="sort-arr" id="sa_tbRegion_4"></span></th><th class="sth" data-tid="tbRegion" data-col="5" onclick="sortTable('tbRegion',5)">LYMTD<span class="sort-arr" id="sa_tbRegion_5"></span></th>
-          <th class="sth" data-tid="tbRegion" data-col="6" onclick="sortTable('tbRegion',6)">YoY %<span class="sort-arr" id="sa_tbRegion_6"></span></th><th class="sth" data-tid="tbRegion" data-col="7" onclick="sortTable('tbRegion',7)">MoM %<span class="sort-arr" id="sa_tbRegion_7"></span></th><th class="sth" data-tid="tbRegion" data-col="8" onclick="sortTable('tbRegion',8)">FAT%<span class="sort-arr" id="sa_tbRegion_8"></span></th><th class="sth" data-tid="tbRegion" data-col="9" onclick="sortTable('tbRegion',9)">₹/L<span class="sort-arr" id="sa_tbRegion_9"></span></th><th class="sth" data-tid="tbRegion" data-col="10" onclick="sortTable('tbRegion',10)">Status<span class="sort-arr" id="sa_tbRegion_10"></span></th>
+        <thead class="sth" data-tid="tbHpcV" data-col="0" onclick="sortTable('tbHpcV',0)"><tr>
+          <th>Center Name<span class="sort-arr" id="sa_tbHpcV_0"></span></th><th class="sth" data-tid="tbHpcV" data-col="1" onclick="sortTable('tbHpcV',1)">Region<span class="sort-arr" id="sa_tbHpcV_1"></span></th><th class="sth" data-tid="tbHpcV" data-col="2" onclick="sortTable('tbHpcV',2)">Zone<span class="sort-arr" id="sa_tbHpcV_2"></span></th>
+          <th class="sth" data-tid="tbHpcV" data-col="3" onclick="sortTable('tbHpcV',3)">MTD L/Day<span class="sort-arr" id="sa_tbHpcV_3"></span></th><th class="sth" data-tid="tbHpcV" data-col="4" onclick="sortTable('tbHpcV',4)">LM L/Day<span class="sort-arr" id="sa_tbHpcV_4"></span></th><th class="sth" data-tid="tbHpcV" data-col="5" onclick="sortTable('tbHpcV',5)">LYMTD<span class="sort-arr" id="sa_tbHpcV_5"></span></th>
+          <th class="sth" data-tid="tbHpcV" data-col="6" onclick="sortTable('tbHpcV',6)">YoY %<span class="sort-arr" id="sa_tbHpcV_6"></span></th><th class="sth" data-tid="tbHpcV" data-col="7" onclick="sortTable('tbHpcV',7)">MoM %<span class="sort-arr" id="sa_tbHpcV_7"></span></th><th class="sth" data-tid="tbHpcV" data-col="8" onclick="sortTable('tbHpcV',8)">FAT%<span class="sort-arr" id="sa_tbHpcV_8"></span></th><th class="sth" data-tid="tbHpcV" data-col="9" onclick="sortTable('tbHpcV',9)">₹/L<span class="sort-arr" id="sa_tbHpcV_9"></span></th><th class="sth" data-tid="tbHpcV" data-col="10" onclick="sortTable('tbHpcV',10)">Status<span class="sort-arr" id="sa_tbHpcV_10"></span></th>
         </tr></thead>
         <tbody id="tbHpcV"></tbody>
       </table>
-      <!-- Farmer Strength view (hidden initially) -->
       <table class="dt" id="tbHpcFarmer" style="display:none">
-        <thead class="sth" data-tid="tbHpcV" data-col="0" onclick="sortTable('tbHpcV',0)"><tr>
-          <th>Center Name<span class="sort-arr" id="sa_tbHpcV_0"></span></th><th class="sth" data-tid="tbHpcV" data-col="1" onclick="sortTable('tbHpcV',1)">Region<span class="sort-arr" id="sa_tbHpcV_1"></span></th><th class="sth" data-tid="tbHpcV" data-col="2" onclick="sortTable('tbHpcV',2)">Zone<span class="sort-arr" id="sa_tbHpcV_2"></span></th>
-          <th class="sth" data-tid="tbHpcV" data-col="3" onclick="sortTable('tbHpcV',3)">Farmers MTD<span class="sort-arr" id="sa_tbHpcV_3"></span></th><th class="sth" data-tid="tbHpcV" data-col="4" onclick="sortTable('tbHpcV',4)">Farmers LM<span class="sort-arr" id="sa_tbHpcV_4"></span></th><th class="sth" data-tid="tbHpcV" data-col="5" onclick="sortTable('tbHpcV',5)">Chg<span class="sort-arr" id="sa_tbHpcV_5"></span></th>
-          <th class="sth" data-tid="tbHpcV" data-col="6" onclick="sortTable('tbHpcV',6)">Consistent<span class="sort-arr" id="sa_tbHpcV_6"></span></th><th class="sth" data-tid="tbHpcV" data-col="7" onclick="sortTable('tbHpcV',7)">Irregular<span class="sort-arr" id="sa_tbHpcV_7"></span></th><th class="sth" data-tid="tbHpcV" data-col="8" onclick="sortTable('tbHpcV',8)">Attrition%<span class="sort-arr" id="sa_tbHpcV_8"></span></th><th class="sth" data-tid="tbHpcV" data-col="9" onclick="sortTable('tbHpcV',9)">Acquired<span class="sort-arr" id="sa_tbHpcV_9"></span></th><th class="sth" data-tid="tbHpcV" data-col="10" onclick="sortTable('tbHpcV',10)">Churned<span class="sort-arr" id="sa_tbHpcV_10"></span></th><th class="sth" data-tid="tbHpcV" data-col="11" onclick="sortTable('tbHpcV',11)">Segment<span class="sort-arr" id="sa_tbHpcV_11"></span></th>
+        <thead class="sth" data-tid="tbHpcF" data-col="0" onclick="sortTable('tbHpcF',0)"><tr>
+          <th>Center Name<span class="sort-arr" id="sa_tbHpcF_0"></span></th><th class="sth" data-tid="tbHpcF" data-col="1" onclick="sortTable('tbHpcF',1)">Region<span class="sort-arr" id="sa_tbHpcF_1"></span></th><th class="sth" data-tid="tbHpcF" data-col="2" onclick="sortTable('tbHpcF',2)">Zone<span class="sort-arr" id="sa_tbHpcF_2"></span></th>
+          <th class="sth" data-tid="tbHpcF" data-col="3" onclick="sortTable('tbHpcF',3)">Farmers MTD<span class="sort-arr" id="sa_tbHpcF_3"></span></th><th class="sth" data-tid="tbHpcF" data-col="4" onclick="sortTable('tbHpcF',4)">Farmers LM<span class="sort-arr" id="sa_tbHpcF_4"></span></th><th class="sth" data-tid="tbHpcF" data-col="5" onclick="sortTable('tbHpcF',5)">Chg<span class="sort-arr" id="sa_tbHpcF_5"></span></th>
+          <th class="sth" data-tid="tbHpcF" data-col="6" onclick="sortTable('tbHpcF',6)">Consistent<span class="sort-arr" id="sa_tbHpcF_6"></span></th><th class="sth" data-tid="tbHpcF" data-col="7" onclick="sortTable('tbHpcF',7)">Irregular<span class="sort-arr" id="sa_tbHpcF_7"></span></th><th class="sth" data-tid="tbHpcF" data-col="8" onclick="sortTable('tbHpcF',8)">Attrition%<span class="sort-arr" id="sa_tbHpcF_8"></span></th><th class="sth" data-tid="tbHpcF" data-col="9" onclick="sortTable('tbHpcF',9)">Acquired<span class="sort-arr" id="sa_tbHpcF_9"></span></th><th class="sth" data-tid="tbHpcF" data-col="10" onclick="sortTable('tbHpcF',10)">Churned<span class="sort-arr" id="sa_tbHpcF_10"></span></th><th class="sth" data-tid="tbHpcF" data-col="11" onclick="sortTable('tbHpcF',11)">Segment<span class="sort-arr" id="sa_tbHpcF_11"></span></th>
         </tr></thead>
         <tbody id="tbHpcF"></tbody>
       </table>
     </div>
-  </div>
+    <div id="pagHpc"></div> </div>
 </div>
 
-<!-- ══════════════ FARMERS ══════════════ -->
 <div class="page" id="pg-farmers">
   <div class="kpi-row" id="fmrKpis"><div class="loading"><div class="spin"></div></div></div>
-
-  <!-- RFM ANALYSIS SECTION -->
-  <div id="rfmAnalysis" style="margin-bottom:18px">
-    <!-- Tier summary cards -->
-    <div id="rfmTierCards" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px"></div>
-
+  <div id="rfmAnalysis" style="margin-bottom:24px">
+    <div id="rfmTierCards" style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px"></div>
     <div class="g2">
       <div class="card">
-        <div class="card-head">
-          <div><div class="c-title">RFM Tier Distribution</div><div class="c-sub">Farmers by engagement &amp; value tier — click to filter table</div></div>
-        </div>
+        <div class="card-head"><div><div class="c-title">RFM Tier Distribution</div><div class="c-sub">Farmers by engagement &amp; value tier</div></div></div>
         <div class="c-body"><div class="ch h200"><canvas id="cRfm"></canvas></div></div>
       </div>
       <div class="card">
-        <div class="card-head">
-          <div><div class="c-title">Attendance Distribution</div><div class="c-sub">Delivery days this month — 26+ is healthy</div></div>
-        </div>
+        <div class="card-head"><div><div class="c-title">Attendance Distribution</div><div class="c-sub">Delivery days this month</div></div></div>
         <div class="c-body"><div class="ch h200"><canvas id="cAtt"></canvas></div></div>
       </div>
     </div>
   </div>
-
-  <!-- TABLE SECTION -->
-  <div class="toolbar" style="margin-bottom:12px">
-    <select class="t-sel" id="rfmF" onchange="renderFarmerTable()">
-      <option value="recovery">⚡ At Risk + Dormant — Recovery</option>
-      <option value="Champion">🥇 Champion</option>
-      <option value="Loyal">🌱 Loyal</option>
-      <option value="At Risk">⚠️ At Risk</option>
-      <option value="Dormant">💤 Dormant</option>
-      <option value="Churned">🔴 Churned</option>
-      <option value="">All Farmers</option>
+  <div class="toolbar" style="margin-bottom:16px">
+    <select class="t-sel" id="rfmF" onchange="resetPage('farmers'); renderFarmerTable()">
+      <option value="recovery">⚡ At Risk + Dormant — Recovery</option><option value="Champion">🥇 Champion</option><option value="Loyal">🌱 Loyal</option><option value="At Risk">⚠️ At Risk</option><option value="Dormant">💤 Dormant</option><option value="Churned">🔴 Churned</option><option value="">All Farmers</option>
     </select>
-    <select class="t-sel" id="fReg" onchange="renderFarmerTable()"><option value="">All Regions</option></select>
+    <select class="t-sel" id="fReg" onchange="resetPage('farmers'); renderFarmerTable()"><option value="">All Regions</option></select>
   </div>
-
   <div class="tbl-card">
     <div class="tbl-toolbar">
-      <input class="tbl-srch" id="srchFarmer" placeholder="Search all columns…" oninput="renderFarmerTable()">
-      <span class="tbl-cnt2" id="fCnt"></span>
-      <button class="tbl-export" onclick="exportCSV('tbFarmer','farmers')">⬇ Export CSV</button>
+      <input class="tbl-srch" id="srchFarmer" placeholder="Search all columns…" oninput="resetPage('farmers'); renderFarmerTable()">
+      <button class="tbl-export" onclick="exportCSV('tbFarmer','farmers','renderFarmerTable','farmers')">⬇ Export CSV</button>
     </div>
-    <div class="scr h460">
+    <div class="scr">
       <table class="dt">
-        <thead class="sth" data-tid="tbHpcF" data-col="0" onclick="sortTable('tbHpcF',0)"><tr>
-          <th>#<span class="sort-arr" id="sa_tbHpcF_0"></span></th><th class="sth" data-tid="tbHpcF" data-col="1" onclick="sortTable('tbHpcF',1)">Farmer<span class="sort-arr" id="sa_tbHpcF_1"></span></th><th class="sth" data-tid="tbHpcF" data-col="2" onclick="sortTable('tbHpcF',2)">Code<span class="sort-arr" id="sa_tbHpcF_2"></span></th><th class="sth" data-tid="tbHpcF" data-col="3" onclick="sortTable('tbHpcF',3)">Center<span class="sort-arr" id="sa_tbHpcF_3"></span></th><th class="sth" data-tid="tbHpcF" data-col="4" onclick="sortTable('tbHpcF',4)">Region<span class="sort-arr" id="sa_tbHpcF_4"></span></th>
-          <th class="sth" data-tid="tbHpcF" data-col="5" onclick="sortTable('tbHpcF',5)">Tier<span class="sort-arr" id="sa_tbHpcF_5"></span></th><th class="sth" data-tid="tbHpcF" data-col="6" onclick="sortTable('tbHpcF',6)">LPD<span class="sort-arr" id="sa_tbHpcF_6"></span></th><th class="sth" data-tid="tbHpcF" data-col="7" onclick="sortTable('tbHpcF',7)">Days<span class="sort-arr" id="sa_tbHpcF_7"></span></th><th class="sth" data-tid="tbHpcF" data-col="8" onclick="sortTable('tbHpcF',8)">FAT%<span class="sort-arr" id="sa_tbHpcF_8"></span></th><th class="sth" data-tid="tbHpcF" data-col="9" onclick="sortTable('tbHpcF',9)">Payout ₹<span class="sort-arr" id="sa_tbHpcF_9"></span></th>
+        <thead class="sth" data-tid="tbFarmerT" data-col="0" onclick="sortTable('tbFarmerT',0)"><tr>
+          <th>#<span class="sort-arr" id="sa_tbFarmerT_0"></span></th><th class="sth" data-tid="tbFarmerT" data-col="1" onclick="sortTable('tbFarmerT',1)">Farmer<span class="sort-arr" id="sa_tbFarmerT_1"></span></th><th class="sth" data-tid="tbFarmerT" data-col="2" onclick="sortTable('tbFarmerT',2)">Code<span class="sort-arr" id="sa_tbFarmerT_2"></span></th><th class="sth" data-tid="tbFarmerT" data-col="3" onclick="sortTable('tbFarmerT',3)">Center<span class="sort-arr" id="sa_tbFarmerT_3"></span></th><th class="sth" data-tid="tbFarmerT" data-col="4" onclick="sortTable('tbFarmerT',4)">Region<span class="sort-arr" id="sa_tbFarmerT_4"></span></th>
+          <th class="sth" data-tid="tbFarmerT" data-col="5" onclick="sortTable('tbFarmerT',5)">Tier<span class="sort-arr" id="sa_tbFarmerT_5"></span></th><th class="sth" data-tid="tbFarmerT" data-col="6" onclick="sortTable('tbFarmerT',6)">LPD<span class="sort-arr" id="sa_tbFarmerT_6"></span></th><th class="sth" data-tid="tbFarmerT" data-col="7" onclick="sortTable('tbFarmerT',7)">Days<span class="sort-arr" id="sa_tbFarmerT_7"></span></th><th class="sth" data-tid="tbFarmerT" data-col="8" onclick="sortTable('tbFarmerT',8)">FAT%<span class="sort-arr" id="sa_tbFarmerT_8"></span></th><th class="sth" data-tid="tbFarmerT" data-col="9" onclick="sortTable('tbFarmerT',9)">Payout ₹<span class="sort-arr" id="sa_tbFarmerT_9"></span></th>
         </tr></thead>
         <tbody id="tbFarmer"></tbody>
       </table>
     </div>
-  </div>
+    <div id="pagFarmers"></div> </div>
 </div>
 
-<!-- ══════════════ QUALITY ══════════════ -->
 <div class="page" id="pg-quality">
   <div class="tl-row" id="tlRow"><div class="loading"><div class="spin"></div></div></div>
-
   <div class="g2">
     <div class="card">
-      <div class="card-head">
-        <div><div class="c-title">FAT% &amp; SNF% Daily Trend</div><div class="c-sub">With quality incident count overlay</div></div>
-      </div>
+      <div class="card-head"><div><div class="c-title">FAT% &amp; SNF% Daily Trend</div><div class="c-sub">With quality incident count overlay</div></div></div>
       <div class="c-body"><div class="ch h240"><canvas id="cFatT"></canvas></div></div>
     </div>
     <div class="card">
-      <div class="card-head">
-        <div><div class="c-title">Procurement Economics by Region</div><div class="c-sub">Rate ₹/L vs Cost per Fat-Kg</div></div>
-      </div>
+      <div class="card-head"><div><div class="c-title">Procurement Economics by Region</div><div class="c-sub">Rate ₹/L vs Cost per Fat-Kg</div></div></div>
       <div class="c-body"><div class="ch h240"><canvas id="cEcon"></canvas></div></div>
     </div>
   </div>
-
   <div class="tbl-card">
     <div class="tbl-head">
-      <div>
-        <div class="th-title">Quality &amp; Economics by Region</div>
-        <div class="th-sub">⚠ = below target &nbsp;·&nbsp; FAT ≥ 3.5% &nbsp;·&nbsp; SNF ≥ 8.0%</div>
-      </div>
+      <div><div class="th-title">Quality &amp; Economics by Region</div><div class="th-sub">⚠ = below target &nbsp;·&nbsp; FAT ≥ 3.5% &nbsp;·&nbsp; SNF ≥ 8.0%</div></div>
     </div>
     <div class="tbl-toolbar">
-      <input class="tbl-srch" id="srchQl" placeholder="Search all columns…" oninput="renderQuality()">
-      <span class="tbl-cnt2" id="qlCnt"></span>
-      <button class="tbl-export" onclick="exportCSV('tbQl','quality_economics')">⬇ Export CSV</button>
+      <input class="tbl-srch" id="srchQl" placeholder="Search all columns…" oninput="resetPage('quality'); renderQuality()">
+      <button class="tbl-export" onclick="exportCSV('tbQl','quality_economics','renderQuality','quality')">⬇ Export CSV</button>
     </div>
-    <div class="scr h380">
+    <div class="scr">
       <table class="dt">
-        <thead class="sth" data-tid="tbFarmer" data-col="0" onclick="sortTable('tbFarmer',0)"><tr>
-          <th>Region<span class="sort-arr" id="sa_tbFarmer_0"></span></th><th class="sth" data-tid="tbFarmer" data-col="1" onclick="sortTable('tbFarmer',1)">FAT%<span class="sort-arr" id="sa_tbFarmer_1"></span></th><th class="sth" data-tid="tbFarmer" data-col="2" onclick="sortTable('tbFarmer',2)">SNF%<span class="sort-arr" id="sa_tbFarmer_2"></span></th><th class="sth" data-tid="tbFarmer" data-col="3" onclick="sortTable('tbFarmer',3)">Incidents<span class="sort-arr" id="sa_tbFarmer_3"></span></th>
-          <th class="sth" data-tid="tbFarmer" data-col="4" onclick="sortTable('tbFarmer',4)">Rate ₹/L<span class="sort-arr" id="sa_tbFarmer_4"></span></th><th class="sth" data-tid="tbFarmer" data-col="5" onclick="sortTable('tbFarmer',5)">Cost/FatKg<span class="sort-arr" id="sa_tbFarmer_5"></span></th><th class="sth" data-tid="tbFarmer" data-col="6" onclick="sortTable('tbFarmer',6)">Incentive %<span class="sort-arr" id="sa_tbFarmer_6"></span></th><th class="sth" data-tid="tbFarmer" data-col="7" onclick="sortTable('tbFarmer',7)">Payout<span class="sort-arr" id="sa_tbFarmer_7"></span></th>
+        <thead class="sth" data-tid="tbQlT" data-col="0" onclick="sortTable('tbQlT',0)"><tr>
+          <th>Region<span class="sort-arr" id="sa_tbQlT_0"></span></th><th class="sth" data-tid="tbQlT" data-col="1" onclick="sortTable('tbQlT',1)">FAT%<span class="sort-arr" id="sa_tbQlT_1"></span></th><th class="sth" data-tid="tbQlT" data-col="2" onclick="sortTable('tbQlT',2)">SNF%<span class="sort-arr" id="sa_tbQlT_2"></span></th><th class="sth" data-tid="tbQlT" data-col="3" onclick="sortTable('tbQlT',3)">Incidents<span class="sort-arr" id="sa_tbQlT_3"></span></th>
+          <th class="sth" data-tid="tbQlT" data-col="4" onclick="sortTable('tbQlT',4)">Rate ₹/L<span class="sort-arr" id="sa_tbQlT_4"></span></th><th class="sth" data-tid="tbQlT" data-col="5" onclick="sortTable('tbQlT',5)">Cost/FatKg<span class="sort-arr" id="sa_tbQlT_5"></span></th><th class="sth" data-tid="tbQlT" data-col="6" onclick="sortTable('tbQlT',6)">Incentive %<span class="sort-arr" id="sa_tbQlT_6"></span></th><th class="sth" data-tid="tbQlT" data-col="7" onclick="sortTable('tbQlT',7)">Payout<span class="sort-arr" id="sa_tbQlT_7"></span></th>
         </tr></thead>
         <tbody id="tbQl"></tbody>
       </table>
     </div>
-  </div>
+    <div id="pagQuality"></div> </div>
 </div>
 
 </main>
-
-<!-- ─── PANEL ─── -->
-<!-- NOTIFICATION PANEL -->
-<div class="overlay" id="notifOverlay" onclick="closeNotifPanel()" style="display:none;z-index:598"></div>
-<div id="notifPanel" style="position:fixed;top:0;right:0;bottom:0;width:420px;background:var(--surface);border-left:1px solid var(--border);z-index:599;overflow-y:auto;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);box-shadow:-8px 0 40px rgba(0,0,0,.12)">
-  <div style="background:var(--brand);padding:20px 22px;position:sticky;top:0;z-index:2">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <div>
-        <div style="font-family:var(--font-head);font-size:15px;font-weight:800;color:#fff;letter-spacing:.01em">Insights &amp; Alerts</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:2px" id="notifSubtitle">—</div>
-      </div>
-      <button onclick="closeNotifPanel()" style="width:30px;height:30px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);border-radius:7px;display:grid;place-items:center;cursor:pointer;font-size:13px;color:#fff">✕</button>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap" id="notifChips"></div>
-  </div>
-  <div style="padding:18px 20px" id="notifBody">
-    <div style="display:flex;align-items:center;gap:9px;color:var(--muted);padding:16px 0"><div class="spin"></div> Loading…</div>
-  </div>
-</div>
 
 <div class="overlay" id="overlay" onclick="closePanel()"></div>
 <div class="panel" id="panel">
@@ -1014,36 +483,55 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
 </div>
 
 <script>
+/* ── PAGINATION SYSTEM ── */
+let PAGE_SIZE = 15; // Set row limit per page here
+const TBL_PAGES = { overview: 1, hpc: 1, farmers: 1, quality: 1 };
+
+function resetPage(key) { TBL_PAGES[key] = 1; }
+function changePage(key, dir, renderFnName) {
+    TBL_PAGES[key] += dir;
+    window[renderFnName]();
+}
+
+function buildPagination(total, key, renderFnName) {
+    const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
+    if (TBL_PAGES[key] > totalPages) TBL_PAGES[key] = totalPages;
+    if (TBL_PAGES[key] < 1) TBL_PAGES[key] = 1;
+    
+    const cur = TBL_PAGES[key];
+    const start = total === 0 ? 0 : (cur - 1) * PAGE_SIZE + 1;
+    const end = Math.min(cur * PAGE_SIZE, total);
+
+    return `
+        <div class="pagination">
+            <div class="pag-info">Showing <strong>${start}</strong> to <strong>${end}</strong> of <strong>${total}</strong> entries</div>
+            <div class="pag-controls">
+                <button class="pag-btn" ${cur === 1 ? 'disabled' : ''} onclick="changePage('${key}', -1, '${renderFnName}')">Previous</button>
+                <div class="pag-page-num">Page ${cur} of ${totalPages}</div>
+                <button class="pag-btn" ${cur === totalPages ? 'disabled' : ''} onclick="changePage('${key}', 1, '${renderFnName}')">Next</button>
+            </div>
+        </div>
+    `;
+}
+
 /* ── CHART DEFAULTS ── */
-Chart.defaults.color = '#8a7d72';
-Chart.defaults.borderColor = '#e8e2da';
+Chart.defaults.color = '#64748b';
+Chart.defaults.borderColor = '#e2e8f0';
 Chart.defaults.font.family = "'Lato', sans-serif";
 Chart.defaults.font.size = 11;
 
 const CL = {
-  brand:'#1a7a3c', brandlt:'rgba(26,122,60,.12)',
-  red:'#C41230', redlt:'rgba(196,18,48,.12)',
-  green:'#16803c', greenlt:'rgba(22,128,60,.12)',
-  amber:'#b45309', amberlt:'rgba(180,83,9,.12)',
-  blue:'#1e4899',  bluelt:'rgba(30,72,153,.12)',
-  teal:'#0d7a6a',  teallt:'rgba(13,122,106,.12)',
-  muted:'#8a7d72',
+  brand:'#1a7a3c', brandlt:'rgba(26,122,60,.12)', red:'#C41230', redlt:'rgba(196,18,48,.12)',
+  green:'#16803c', greenlt:'rgba(22,128,60,.12)', amber:'#b45309', amberlt:'rgba(180,83,9,.12)',
+  blue:'#1e4899',  bluelt:'rgba(30,72,153,.12)', teal:'#0d7a6a',  teallt:'rgba(13,122,106,.12)',
+  muted:'#64748b',
 };
 
 let D=null, charts={}, gF={zone:'',region:'',plant_code:''};
-
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtDate(d){
-  // d = 'YYYY-MM-DD'
-  if(!d||d.length<10) return d;
-  const yr=d.slice(2,4), mo=parseInt(d.slice(5,7),10)-1, day=parseInt(d.slice(8,10),10);
-  return day===1 ? MONTHS[mo]+' \''+yr : day+' '+MONTHS[mo];
-}
-function fmtDateFull(d){
-  if(!d||d.length<10) return d;
-  const yr=d.slice(2,4), mo=parseInt(d.slice(5,7),10)-1;
-  return MONTHS[mo]+' \''+yr;
-}
+
+function fmtDate(d){ if(!d||d.length<10) return d; const yr=d.slice(2,4), mo=parseInt(d.slice(5,7),10)-1, day=parseInt(d.slice(8,10),10); return day===1 ? MONTHS[mo]+' \''+yr : day+' '+MONTHS[mo]; }
+function fmtDateFull(d){ if(!d||d.length<10) return d; const yr=d.slice(2,4), mo=parseInt(d.slice(5,7),10)-1; return MONTHS[mo]+' \''+yr; }
 
 const F={
   n: v=>v==null?'—':Number(v).toLocaleString('en-IN',{maximumFractionDigits:0}),
@@ -1070,53 +558,141 @@ function spill(r){
 }
 
 function dc(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
-function filt(a){const z=gF.zone,r=gF.region,p=gF.plant_code;if(!z&&!r&&!p)return a;return a.filter(x=>(!z||x.zone===z)&&(!r||x.region===r)&&(!p||x.plant_code===p));}
+function filt(a) {
+  const z = gF.zone, r = gF.region, p = String(gF.plant_code || '');
+  if (!z && !r && !p) return a;
+  
+  return a.filter(x => 
+    (!z || x.zone === z) && 
+    (!r || x.region === r) && 
+    (!p || String(x.plant_code || '') === p) // Forces both sides to be strings
+  );
+}
 function sF(a,k){return a.reduce((s,r)=>s+(Number(r[k])||0),0);}
 function aF(a,k){const f=a.filter(r=>r[k]!=null);return f.length?sF(f,k)/f.length:null;}
 function wv(a,v,w){const ws=sF(a,w);return ws?a.reduce((s,r)=>s+(Number(r[v])||0)*(Number(r[w])||0),0)/ws:null;}
 function gby(a,k){return a.reduce((m,r)=>{const kk=r[k];if(!m[kk])m[kk]=[];m[kk].push(r);return m;},{});}
 
-/* ── SCOPE ── */
-function populateFilters(){
-  const zs=document.getElementById('gfZone'),rs=document.getElementById('gfRegion'),ps=document.getElementById('gfPlant');
-  D.filters.zones.forEach(z=>{const o=document.createElement('option');o.value=o.textContent=z;zs.appendChild(o);});
-  D.filters.regions.forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;rs.appendChild(o);});
-  D.filters.plants.forEach(p=>{const o=document.createElement('option');o.value=p.code;o.textContent=p.name;ps.appendChild(o);});
-  ['hpcReg','fReg'].forEach(id=>{
-    const el=document.getElementById(id);if(!el)return;
-    D.filters.regions.forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;el.appendChild(o);});
+/* SCOPE & CASCADING FILTERS */
+function updateFilterOptions() {
+  const hpcs = D.hpc_list || [];
+  const z = gF.zone, r = gF.region, p = String(gF.plant_code || '');
+
+  // Sets to hold our valid dependent options
+  const zSet = new Set(), rSet = new Set(), pMap = new Map();
+  
+  hpcs.forEach(h => {
+    const hcP = String(h.plant_code || '');
+    // Check if this row is valid against the OTHER selected filters
+    const matchZ = !z || h.zone === z;
+    const matchR = !r || h.region === r;
+    const matchP = !p || hcP === p;
+
+    // If it matches Region & Plant, this Zone is a valid option
+    if (matchR && matchP && h.zone) zSet.add(h.zone);
+    // If it matches Zone & Plant, this Region is a valid option
+    if (matchZ && matchP && h.region) rSet.add(h.region);
+    // If it matches Zone & Region, this Plant is a valid option
+    if (matchZ && matchR && hcP) pMap.set(hcP, h.plant_name || hcP);
+  });
+
+  // Helper function to update a dropdown while keeping the current selection if valid
+  const rebuild = (id, defaultText, setOrMap, currVal) => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = `<option value="">${defaultText}</option>`;
+    
+    let arr = [];
+    if (setOrMap instanceof Set) {
+      arr = Array.from(setOrMap).sort().map(val => ({val, txt: val}));
+    } else {
+      arr = Array.from(setOrMap.entries())
+                 .sort((a, b) => a[1].localeCompare(b[1]))
+                 .map(([val, txt]) => ({val, txt}));
+    }
+    
+    arr.forEach(item => {
+      const o = document.createElement('option');
+      o.value = item.val;
+      o.textContent = item.txt;
+      if (String(item.val) === String(currVal)) o.selected = true;
+      sel.appendChild(o);
+    });
+  };
+
+  rebuild('gfZone', 'All Zones', zSet, z);
+  rebuild('gfRegion', 'All Regions', rSet, r);
+  rebuild('gfPlant', 'All Plants', pMap, p);
+
+  // Also update the sub-filters inside the HPC and Farmer tabs to match
+  const rArr = Array.from(rSet).sort();
+  ['hpcReg', 'fReg'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel) {
+      const curr = sel.value;
+      sel.innerHTML = '<option value="">All Regions</option>';
+      rArr.forEach(reg => {
+        const o = document.createElement('option');
+        o.value = o.textContent = reg;
+        if (reg === curr) o.selected = true;
+        sel.appendChild(o);
+      });
+    }
   });
 }
 
-function toggleScope(){document.getElementById('scopeDrop').classList.toggle('open');}
-document.addEventListener('click',e=>{
-  const d=document.getElementById('scopeDrop'),b=document.getElementById('scopeBtn');
-  if(!d.contains(e.target)&&!b.contains(e.target)) d.classList.remove('open');
+function populateFilters() {
+  // Run once on boot to populate the initial dropdowns
+  updateFilterOptions();
+}
+
+function toggleScope() { 
+  document.getElementById('scopeDrop').classList.toggle('open'); 
+}
+
+document.addEventListener('click', e => {
+  const d = document.getElementById('scopeDrop'), b = document.getElementById('scopeBtn');
+  if(d && b && !d.contains(e.target) && !b.contains(e.target)) d.classList.remove('open');
 });
 
-function applyFilter(){
-  gF.zone=document.getElementById('gfZone').value;
-  gF.region=document.getElementById('gfRegion').value;
-  gF.plant_code=document.getElementById('gfPlant').value;
-  const active=Object.values(gF).some(v=>v);
-  const label=[gF.zone,gF.region,gF.plant_code].filter(Boolean).join(' › ')||'All India';
-  document.getElementById('scopeLabel').textContent=label;
-  document.getElementById('fbChip').classList.toggle('on',active);
-  document.getElementById('fbChipTxt').textContent=label;
-  document.getElementById('fbClear').classList.toggle('on',active);
-  document.getElementById('fbAll').style.display=active?'none':'';
-  document.getElementById('sdClear').classList.toggle('on',active);
-  const tab=document.querySelector('.tab.on')?.getAttribute('onclick')?.match(/'(\w+)'/)?.[1]||'overview';
+function applyFilter() {
+  gF.zone = document.getElementById('gfZone').value;
+  gF.region = document.getElementById('gfRegion').value;
+  gF.plant_code = document.getElementById('gfPlant').value;
+  
+  // Update dropdown limits based on new selections
+  updateFilterOptions();
+
+  const active = Object.values(gF).some(v => v);
+  
+  // Create a nice label using the Plant Name (instead of just the code)
+  const pTxt = document.getElementById('gfPlant').options[document.getElementById('gfPlant').selectedIndex]?.text;
+  const pLabel = (pTxt && pTxt !== 'All Plants') ? pTxt : null;
+  const label = [gF.zone, gF.region, pLabel].filter(Boolean).join(' › ') || 'All India';
+  
+  document.getElementById('scopeLabel').textContent = label;
+  document.getElementById('fbChip').classList.toggle('on', active);
+  document.getElementById('fbChipTxt').textContent = label;
+  document.getElementById('fbClear').classList.toggle('on', active);
+  document.getElementById('fbAll').style.display = active ? 'none' : '';
+  document.getElementById('sdClear').classList.toggle('on', active);
+  
+  const tab = document.querySelector('.tab.on')?.getAttribute('onclick')?.match(/'(\w+)'/)?.[1] || 'overview';
   renderTab(tab);
 }
-function clearFilter(){['gfZone','gfRegion','gfPlant'].forEach(id=>document.getElementById(id).value='');applyFilter();}
 
-/* ── TABS ── */
+function clearFilter() {
+  // Clear all selections and re-apply
+  ['gfZone','gfRegion','gfPlant'].forEach(id => document.getElementById(id).value = '');
+  applyFilter();
+}
+
+
+/* TABS */
 function switchTab(n){
   document.querySelectorAll('.tab').forEach(b=>{const t=b.getAttribute('onclick')?.match(/'(\w+)'/)?.[1];b.classList.toggle('on',t===n);});
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
-  const pg=document.getElementById('pg-'+n);
-  if(pg) pg.classList.add('on');
+  const pg=document.getElementById('pg-'+n); if(pg) pg.classList.add('on');
   if(D) renderTab(n);
   document.getElementById('scopeDrop').classList.remove('open');
 }
@@ -1127,23 +703,10 @@ function renderTab(n){
   else if(n==='quality') renderQuality();
 }
 
-/* ── CHART OPTIONS HELPER ── */
-function baseOpts(extra){
-  return {
-    responsive:true, maintainAspectRatio:false,
-    plugins:{legend:{display:false}},
-    scales:{
-      x:{grid:{display:false},ticks:{color:CL.muted,font:{size:10}}},
-      y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:CL.muted}}
-    },
-    ...extra
-  };
-}
-
-/* ── OVERVIEW ── */
+/* OVERVIEW */
+/* OVERVIEW */
 function renderOverview(){
   const hpcs=filt(D.hpc_list), mhpc=filt(D.monthly_hpc);
-  // isF: UI filter active OR user has a role-based scope (plant/rh/zh)
   const hasScope = D.user && D.user.role !== 'cxo' && D.user.role !== 'admin';
   const isF = Object.values(gF).some(v=>v) || hasScope;
   let snap;
@@ -1161,139 +724,98 @@ function renderOverview(){
   document.getElementById('hDate').textContent='Data as of '+( snap.snapshot_date||'—');
   const yOk=(snap.yoy_pct||0)>=0;
 
-  const kpiData=[
+  document.getElementById('ovKpis').innerHTML=[
     {icon:'📦',ibg:yOk?CL.greenlt:CL.redlt, l:'MTD Litres / Day',     v:F.n(snap.mtd),          ctx:gb(snap.yoy_pct/100,false)+' YoY',                    ac:yOk?CL.green:CL.red},
     {icon:'📈',ibg:CL.amberlt,               l:'Month on Month',       v:(function(){var p=snap.mom_pct||0;var s=p>=0?'+':'';return s+p.toFixed(1)+'%';})(),ctx:'MTD vs LMTD',                                       ac:CL.amber},
     {icon:'👨‍🌾',ibg:CL.bluelt,              l:'Active Farmers',        v:F.n(snap.total_farmers), ctx:gb((snap.total_farmers-(snap.lm_farmers||0))/Math.max(1,snap.lm_farmers||1))+' vs LM', ac:CL.blue},
     {icon:'💰',ibg:CL.teallt,                l:'Month Payout',          v:F.cr(snap._pay),         ctx:'Total ₹ paid to farmers',                             ac:CL.teal},
     {icon:'🏭',ibg:CL.redlt,                 l:'Network',               v:F.n((snap.total_hpcs||0)-(snap.dark_hpcs||0))+' live',ctx:'<span class="b b-r">'+(snap.dark_hpcs||0)+' dark</span> &nbsp; <span class="b b-g">'+(snap.star_hpcs||0)+' star</span>', ac:(snap.dark_hpcs||0)>0?CL.red:CL.green},
-  ];
+  ].map(h=>`<div class="kpi" style="--k-accent:${h.ac}"><div class="k-icon" style="background:${h.ibg}">${h.icon}</div><div class="k-label">${h.l}</div><div class="k-value">${h.v}</div><div class="k-ctx">${h.ctx}</div></div>`).join('');
 
-  document.getElementById('ovKpis').innerHTML=kpiData.map(h=>`
-    <div class="kpi" style="--k-accent:${h.ac}">
-      <div class="k-icon" style="background:${h.ibg}">${h.icon}</div>
-      <div class="k-label">${h.l}</div>
-      <div class="k-value">${h.v}</div>
-      <div class="k-ctx">${h.ctx}</div>
-    </div>`).join('');
+  // ── LAZY LOADED TREND CHART ────────────────────────────────────
+  async function loadTrendChart() {
+    let tr = [];
+    const pCode = String(gF.plant_code || '');
 
-  // Trend + 7-day MA
-  const td=filt(D.daily), tbd=gby(td,'proc_date');
-  const tr=Object.entries(tbd).sort(([a],[b])=>a.localeCompare(b)).map(([d,rows])=>({d,v:sF(rows,'qty_ltr'),f:sF(rows,'farmers')}));
-  dc('cTrend');
-  charts['cTrend']=new Chart(document.getElementById('cTrend').getContext('2d'),{
-    type:'line',data:{labels:tr.map(r=>r.d?r.d.slice(8,10)+' '+MONTHS[parseInt(r.d.slice(5,7),10)-1]+' \''+ r.d.slice(2,4):''),datasets:[
-      {label:'Litres/Day',data:tr.map(r=>r.v),borderColor:CL.brand,backgroundColor:'rgba(26,122,60,.08)',borderWidth:2,pointRadius:0,fill:true,tension:.3},{label:'Farmers',data:tr.map(r=>r.f),borderColor:CL.amber,borderWidth:1.5,pointRadius:0,fill:false,tension:.3,yAxisID:'y2'},
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
-      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,color:CL.muted}}},
-      scales:{x:{grid:{display:false},ticks:{maxTicksLimit:15,color:CL.muted,font:{size:9},maxRotation:45,minRotation:30,callback:function(val,idx){return idx%7===0?this.getLabelForValue(val):'';}}},y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{callback:v=>F.n(v),color:CL.muted},title:{display:true,text:'Litres/Day',color:CL.muted}},y2:{position:'right',grid:{display:false},ticks:{color:CL.muted},title:{display:true,text:'Farmers',color:CL.muted}}}}
-  });
+    if (!pCode) {
+      // 1. REGION/ZONE LEVEL: Use the fast, pre-loaded bootstrap data
+      const td = filt(D.daily, true); // true = skip plant filter
+      const tbd = gby(td, 'proc_date');
+      tr = Object.entries(tbd)
+            .sort(([a],[b])=>a.localeCompare(b))
+            .map(([d,rows])=>({d, v:sF(rows,'qty_ltr'), f:sF(rows,'farmers')}));
+    } else {
+      // 2. PLANT LEVEL: Fetch specific data gracefully on demand
+      try {
+        const res = await fetch('/api/trend/plant?plant_code=' + encodeURIComponent(pCode));
+        const plantData = await res.json();
+        tr = plantData.map(r => ({ d: r.proc_date, v: r.qty_ltr, f: r.farmers }));
+      } catch (e) {
+        console.error("Failed to fetch plant trend", e);
+      }
+    }
 
-  // Zone bars
+    // 3. Draw the chart
+    dc('cTrend');
+    charts['cTrend'] = new Chart(document.getElementById('cTrend').getContext('2d'), {
+      type:'line',
+      data:{
+        labels: tr.map(r=>r.d ? r.d.slice(8,10)+' '+MONTHS[parseInt(r.d.slice(5,7),10)-1]+' \''+ r.d.slice(2,4) : ''),
+        datasets:[
+          {label:'Litres/Day', data:tr.map(r=>r.v), borderColor:CL.brand, backgroundColor:'rgba(26,122,60,.08)', borderWidth:2, pointRadius:0, fill:true, tension:.3},
+          {label:'Farmers', data:tr.map(r=>r.f), borderColor:CL.amber, borderWidth:1.5, pointRadius:0, fill:false, tension:.3, yAxisID:'y2'}
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false, interaction:{intersect:false,mode:'index'},
+        plugins: {legend:{display:true,position:'top'}},
+        scales: {
+          x: {grid:{display:false}, ticks:{maxTicksLimit:15,color:CL.muted}},
+          y: {grid:{color:'rgba(0,0,0,0.04)'}, ticks:{callback:v=>F.n(v),color:CL.muted}},
+          y2: {position:'right', grid:{display:false}, ticks:{color:CL.muted}}
+        }
+      }
+    });
+  }
+
+  // Execute the lazy loader
+  loadTrendChart();
+  // ───────────────────────────────────────────────────────────────
+
   const bz=gby(hpcs,'zone');
   const zones=Object.entries(bz).filter(([z])=>z).map(([z,rows])=>({z,mtd:sF(rows,'mtd'),ly:sF(rows,'lymtd')})).sort((a,b)=>b.mtd-a.mtd);
   dc('cZone');
-  charts['cZone']=new Chart(document.getElementById('cZone').getContext('2d'),{
-    type:'bar',data:{labels:zones.map(z=>z.z),datasets:[
-      {label:'This Year MTD', data:zones.map(z=>z.mtd),backgroundColor:CL.brand,borderRadius:5,borderSkipped:false},
-      {label:'Last Year',     data:zones.map(z=>z.ly), backgroundColor:'rgba(26,122,60,.15)',borderRadius:5,borderSkipped:false,borderWidth:1,borderColor:CL.brand},
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,color:CL.muted}}},
-      scales:{x:{grid:{display:false},ticks:{color:CL.muted}},y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:CL.muted}}}}
-  });
+  charts['cZone']=new Chart(document.getElementById('cZone').getContext('2d'),{ type:'bar',data:{labels:zones.map(z=>z.z),datasets:[{label:'This Year MTD', data:zones.map(z=>z.mtd),backgroundColor:CL.brand,borderRadius:5},{label:'Last Year', data:zones.map(z=>z.ly), backgroundColor:'rgba(26,122,60,.15)',borderRadius:5,borderWidth:1,borderColor:CL.brand}]}, options:{responsive:true,maintainAspectRatio:false, plugins:{legend:{display:true,position:'top'}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.04)'}}}} });
 
-  // Region table
   const brm=gby(hpcs,'region'), mbrm=gby(mhpc,'region');
-  const regs=Object.entries(brm).filter(([r])=>r).map(([region,rows])=>{
+  let regs=Object.entries(brm).filter(([r])=>r).map(([region,rows])=>{
     const mr=mbrm[region]||[],mtd=sF(rows,'mtd'),ly=sF(rows,'lymtd'),lm=sF(rows,'lmtd');
-    return{region,zone:rows[0]?.zone||'',mtd,yoy:ly?(mtd-ly)/ly:null,mom:lm?(mtd-lm)/lm:null,
-      farmers:sF(rows,'mtd_farmers'),dark:rows.filter(r=>!r.mtd||r.mtd==0).length,
-      fat:wv(rows.filter(r=>r.mtd_avg_fat>0),'mtd_avg_fat','mtd'),pay:sF(mr,'total_net_price')};
+    return{region,zone:rows[0]?.zone||'',mtd,yoy:ly?(mtd-ly)/ly:null,mom:lm?(mtd-lm)/lm:null,farmers:sF(rows,'mtd_farmers'),dark:rows.filter(r=>!r.mtd||r.mtd==0).length,fat:wv(rows.filter(r=>r.mtd_avg_fat>0),'mtd_avg_fat','mtd'),pay:sF(mr,'total_net_price')};
   }).sort((a,b)=>b.mtd-a.mtd);
 
-  // search across all fields + header-click sort
-  let regsF = filterRows(regs, 'srchRegion');
-  regsF = sortRowsByCol(regsF, function(r){
-    return [r.region, r.zone, r.mtd, (r.mom||0)*100, (r.yoy||0)*100, r.farmers, r.dark, r.fat, r.pay];
-  }, 'tbRegion');
-  const regCntEl=document.getElementById('regCnt');
-  if(regCntEl) regCntEl.textContent=regsF.length+' regions';
+  regs = filterRows(regs, 'srchRegion');
+  regs = sortRowsByCol(regs, r => [r.region, r.zone, r.mtd, (r.mom||0)*100, (r.yoy||0)*100, r.farmers, r.dark, r.fat, r.pay], 'tbRegion');
 
-  document.getElementById('tbRegion').innerHTML=regsF.map(r=>{
+  // Pagination Slice
+  const totalItems = regs.length;
+  const curPage = TBL_PAGES.overview;
+  const pagedData = regs.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE);
+
+  document.getElementById('tbRegion').innerHTML=pagedData.map(r=>{
     const cl=(r.yoy||0)<-0.2?'tr-red':(r.yoy||0)<0?'tr-amber':(r.yoy||0)>=0.3?'tr-green':'';
-    return`<tr class="${cl}">
-      <td><strong>${r.region}</strong></td>
-      <td style="color:var(--muted)">${r.zone}</td>
-      <td><strong>${F.n(r.mtd)}</strong></td>
-      <td>${gb(r.mom)}</td><td>${gb(r.yoy)}</td>
-      <td>${F.n(r.farmers)}</td>
-      <td>${r.dark>0?`<span class="b b-r">${r.dark}</span>`:'<span style="color:var(--muted-lt)">0</span>'}</td>
-      <td style="color:${(r.fat||0)<3.5?'var(--red)':'var(--amber)'}; font-weight:${(r.fat||0)<3.5?700:400}">${F.f3(r.fat)}${(r.fat||0)<3.5?' ⚠':''}</td>
-      <td>${F.cr(r.pay)}</td>
-    </tr>`;
+    return`<tr class="${cl}"><td><strong>${r.region}</strong></td><td style="color:var(--muted)">${r.zone}</td><td><strong>${F.n(r.mtd)}</strong></td><td>${gb(r.mom)}</td><td>${gb(r.yoy)}</td><td>${F.n(r.farmers)}</td><td>${r.dark>0?`<span class="b b-r">${r.dark}</span>`:'<span style="color:var(--muted-lt)">0</span>'}</td><td style="color:${(r.fat||0)<3.5?'var(--red)':'var(--amber)'}; font-weight:${(r.fat||0)<3.5?700:400}">${F.f3(r.fat)}${(r.fat||0)<3.5?' ⚠':''}</td><td>${F.cr(r.pay)}</td></tr>`;
   }).join('');
 
-  // urgent
-  const dark=hpcs.filter(h=>!h.mtd||h.mtd==0).length;
-  const crit=hpcs.filter(h=>(h.yoy_growth_pct||0)<-0.3&&h.mtd>0).length;
-  const urg=dark+crit;
-  document.getElementById('urgN').textContent=urg;
-  document.getElementById('hUrgent').classList.toggle('on',urg>0);
-  const ci=(D.insights||[]).filter(i=>i.priority==='critical').length;
-  const bb2=document.getElementById('bellBadge');
-  if(bb2){ bb2.textContent=ci; bb2.style.display=ci>0?'flex':'none'; }
+  document.getElementById('pagRegion').innerHTML = buildPagination(totalItems, 'overview', 'renderOverview');
 }
-
-/* ── INSIGHTS ── */
-function renderInsights(){
-  const data=D.insights||[];
-  const crit=data.filter(d=>d.priority==='critical');
-  const warn=data.filter(d=>d.priority==='warning');
-  const pos=data.filter(d=>d.priority==='positive');
-  const icons={critical:'🚨',warning:'⚠️',positive:'✅'};
-
-  document.getElementById('iSummary').innerHTML=
-    `<div class="i-sum crit"><div class="is-num">${crit.length}</div><div><div class="is-lbl">Critical</div><div class="is-sub">Act today</div></div></div>`+
-    `<div class="i-sum warn"><div class="is-num">${warn.length}</div><div><div class="is-lbl">Warnings</div><div class="is-sub">Monitor closely</div></div></div>`+
-    `<div class="i-sum pos"><div class="is-num">${pos.length}</div><div><div class="is-lbl">Positive</div><div class="is-sub">Celebrate &amp; learn</div></div></div>`;
-
-  if(!data.length){document.getElementById('iGrid').innerHTML='<div style="color:var(--muted);padding:20px;text-align:center">No insights available for the current data range.</div>';return;}
-
-  const mkG=(items,lbl,cls)=>{
-    if(!items.length) return '';
-    return `<div class="ig-group-lbl">${lbl}</div>
-    <div class="ig">${items.map(i=>`<div class="ic ${cls}">
-      <div class="ic-icon">${icons[i.priority]||'ℹ️'}</div>
-      <div>
-        <div class="ic-cat">${i.category}</div>
-        <div class="ic-title">${i.title}</div>
-        <div class="ic-detail">${i.detail}</div>
-        <div class="ic-action">→ ${i.action}</div>
-      </div>
-    </div>`).join('')}</div>`;
-  };
-
-  document.getElementById('iGrid').innerHTML=
-    mkG(crit,'🚨 Critical — Act Today','crit')+
-    mkG(warn,'⚠️ Warnings — Monitor Closely','warn')+
-    mkG(pos,'✅ Positive Signals','pos');
-}
-
-/* ── HPC ── */
+/* HPC */
 let _hpcView = 'volume';
-
 function switchHpcView(v){
   _hpcView = v;
-  const tabs = document.querySelectorAll('.hpc-sub-tab');
-  tabs.forEach(t => {
-    const isOn = t.id === 'hst' + v.charAt(0).toUpperCase() + v.slice(1);
-    t.style.color = isOn ? 'var(--brand)' : 'var(--muted)';
-    t.style.borderBottomColor = isOn ? 'var(--brand)' : 'transparent';
-  });
-  document.getElementById('tbHpcVolume').style.display = v === 'volume' ? '' : 'none';
-  document.getElementById('tbHpcFarmer').style.display = v === 'farmer' ? '' : 'none';
+  document.querySelectorAll('.hpc-sub-tab').forEach(t=>{ const isOn=t.id==='hst'+v.charAt(0).toUpperCase()+v.slice(1); t.style.color=isOn?'var(--brand)':'var(--muted)'; t.style.borderBottomColor=isOn?'var(--brand)':'transparent'; });
+  document.getElementById('tbHpcVolume').style.display=v==='volume'?'':'none';
+  document.getElementById('tbHpcFarmer').style.display=v==='farmer'?'':'none';
+  resetPage('hpc');
   renderHpcTable();
 }
 
@@ -1313,576 +835,411 @@ function renderHpc(){
     {icon:'🔴',ibg:CL.redlt,   l:'Critical (&lt;-30%)', v:F.n(crit),          ctx:'<span class="b b-r">Needs investigation</span>', ac:CL.red},
     {icon:'⚫',ibg:CL.redlt,   l:'Gone Dark',            v:F.n(dark),          ctx:'<span class="b b-r">Zero MTD</span>',  ac:CL.red},
     {icon:'👨‍🌾',ibg:CL.bluelt, l:'Total Farmers',        v:F.n(totalF),        ctx:`<span class="b b-g">${F.n(stableF)} stable centers</span>`, ac:CL.blue},
-  ].map(h=>`<div class="kpi" style="--k-accent:${h.ac}">
-    <div class="k-icon" style="background:${h.ibg}">${h.icon}</div>
-    <div class="k-label">${h.l}</div><div class="k-value">${h.v}</div><div class="k-ctx">${h.ctx}</div>
-  </div>`).join('');
+  ].map(h=>`<div class="kpi" style="--k-accent:${h.ac}"><div class="k-icon" style="background:${h.ibg}">${h.icon}</div><div class="k-label">${h.l}</div><div class="k-value">${h.v}</div><div class="k-ctx">${h.ctx}</div></div>`).join('');
 
-  const dOpts={responsive:true,maintainAspectRatio:false,cutout:'58%',
-    plugins:{legend:{position:'right',labels:{boxWidth:10,padding:10,color:CL.muted,font:{size:11}}},
-      tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${F.n(ctx.raw)}`}}}};
-
-  dc('cHpcSeg');
-  charts['cHpcSeg']=new Chart(document.getElementById('cHpcSeg').getContext('2d'),{
-    type:'doughnut',data:{labels:['⭐ Star','Growing','Declining','Critical','Dark'],
-      datasets:[{data:[star,grow,decl,crit,dark],backgroundColor:[CL.teal,CL.green,CL.amber,CL.red,'#c8c3b8'],borderWidth:2,borderColor:'#fff'}]},
-    options:dOpts
-  });
-
+  const dOpts={responsive:true,maintainAspectRatio:false,cutout:'58%', plugins:{legend:{position:'right'}}};
+  dc('cHpcSeg'); charts['cHpcSeg']=new Chart(document.getElementById('cHpcSeg').getContext('2d'),{ type:'doughnut',data:{labels:['⭐ Star','Growing','Declining','Critical','Dark'], datasets:[{data:[star,grow,decl,crit,dark],backgroundColor:[CL.teal,CL.green,CL.amber,CL.red,'#c8c3b8'],borderWidth:2,borderColor:'#fff'}]}, options:dOpts });
   const seg={Stable:fh.filter(h=>h.segment==='Stable').length,Growing:fh.filter(h=>h.segment==='Growing').length,'At Risk':fh.filter(h=>h.segment==='At Risk').length,Churning:fh.filter(h=>h.segment==='Churning').length};
-  dc('cFhSeg');
-  charts['cFhSeg']=new Chart(document.getElementById('cFhSeg').getContext('2d'),{
-    type:'doughnut',data:{labels:['Stable','Growing','At Risk','Churning'],
-      datasets:[{data:[seg.Stable,seg.Growing,seg['At Risk'],seg.Churning],backgroundColor:[CL.green,CL.blue,CL.amber,CL.red],borderWidth:2,borderColor:'#fff'}]},
-    options:dOpts
-  });
+  dc('cFhSeg'); charts['cFhSeg']=new Chart(document.getElementById('cFhSeg').getContext('2d'),{ type:'doughnut',data:{labels:['Stable','Growing','At Risk','Churning'], datasets:[{data:[seg.Stable,seg.Growing,seg['At Risk'],seg.Churning],backgroundColor:[CL.green,CL.blue,CL.amber,CL.red],borderWidth:2,borderColor:'#fff'}]}, options:dOpts });
 
   renderHpcTable();
 }
-
 
 function renderHpcTable(){
   const sf=document.getElementById('hpcStat').value;
   const rf=document.getElementById('hpcReg').value;
   const sr=document.getElementById('hpcSrch').value.toLowerCase();
+  
   let hpcs=filt(D.hpc_list);
+  
+  // 1. Apply Status & Region Dropdowns
   if(sf) hpcs=hpcs.filter(h=>{
-    if(sf==='dark')     return !h.mtd||h.mtd==0;
-    if(sf==='star')     return (h.yoy_growth_pct||0)>=0.3&&h.mtd>0;
-    if(sf==='critical') return (h.yoy_growth_pct||0)<-0.3;
-    if(sf==='growing')  return (h.yoy_growth_pct||0)>=0&&(h.yoy_growth_pct||0)<0.3&&h.mtd>0;
-    if(sf==='declining')return (h.yoy_growth_pct||0)<0&&(h.yoy_growth_pct||0)>=-0.3;
+    if(sf==='dark') return !h.mtd||h.mtd==0; 
+    if(sf==='star') return (h.yoy_growth_pct||0)>=0.3&&h.mtd>0; 
+    if(sf==='critical') return (h.yoy_growth_pct||0)<-0.3; 
+    if(sf==='growing') return (h.yoy_growth_pct||0)>=0&&(h.yoy_growth_pct||0)<0.3&&h.mtd>0; 
+    if(sf==='declining') return (h.yoy_growth_pct||0)<0&&(h.yoy_growth_pct||0)>=-0.3; 
     return true;
   });
   if(rf) hpcs=hpcs.filter(h=>h.region===rf);
-  if(sr) hpcs=hpcs.filter(h=>(h.hpc_name||'').toLowerCase().includes(sr)||(h.hpc_plant_key||'').toLowerCase().includes(sr));
-  // apply inline sort
-  const hSort=document.getElementById('hpcSortSel')?.value||'mtd';
-  hpcs=[...hpcs].sort((a,b)=>{
-    if(hSort==='yoy')     return (b.yoy_growth_pct||0)-(a.yoy_growth_pct||0);
-    if(hSort==='farmers') return (b.mtd_farmers||0)-(a.mtd_farmers||0);
-    if(hSort==='fat')     return (b.mtd_avg_fat||0)-(a.mtd_avg_fat||0);
-    return (b.mtd||0)-(a.mtd||0);
-  });
+  
+  // 2. Apply Global Search across all relevant text columns
+  if(sr) hpcs=hpcs.filter(h=>
+    (h.hpc_name||'').toLowerCase().includes(sr) || 
+    (h.hpc_plant_key||'').toLowerCase().includes(sr) || 
+    (h.region||'').toLowerCase().includes(sr) ||
+    (h.zone||'').toLowerCase().includes(sr) ||
+    (h.hpr_name||'').toLowerCase().includes(sr) || 
+    (h.mobile_no||'').includes(sr)
+  );
+  
+  // 3. Apply Column Header Sorting
+  if (_hpcView === 'volume') {
+    var st = _sortState['tbHpcV'];
+    if(st && st.col >= 0) {
+      // Map the array indices to the table columns for sorting
+      hpcs = sortRowsByCol(hpcs, r => [
+        r.hpc_name||'', r.region||'', r.zone||'', 
+        r.mtd, r.lm, r.lymtd, 
+        (r.yoy_growth_pct||0)*100, (r.mom_growth_pct||0)*100, 
+        r.mtd_avg_fat, r.mtd_rate, 
+        (r.mtd||0)==0?0:(r.yoy_growth_pct||0) // Status column fallback
+      ], 'tbHpcV');
+    } else {
+      hpcs.sort((a,b)=>(b.mtd||0)-(a.mtd||0)); // Default sort
+    }
+  } else {
+    var st = _sortState['tbHpcF'];
+    const fhMap={}; (D.farmer_health||[]).forEach(h=>fhMap[h.hpc_plant_key]=h);
+    
+    if(st && st.col >= 0) {
+      hpcs = sortRowsByCol(hpcs, r => {
+        const fh=fhMap[r.hpc_plant_key]||{};
+        return [
+          r.hpc_name||'', r.region||'', r.zone||'', 
+          r.mtd_farmers, r.lm_farmers, (r.mtd_farmers||0)-(r.lm_farmers||0),
+          fh.consistent||0, fh.irregular||0, fh.attrition_pct||0,
+          fh.acquired||0, fh.churned||0, fh.segment||''
+        ];
+      }, 'tbHpcF');
+    } else {
+      hpcs.sort((a,b)=>(b.mtd_farmers||0)-(a.mtd_farmers||0)); // Default sort
+    }
+  }
+
+  // Update total count UI
   const cntTxt=hpcs.length+' centers';
   const c2=document.getElementById('hpcCnt2'); if(c2) c2.textContent=cntTxt;
 
-  // ── VOLUME VIEW ────────────────────────────────────────────────
-  document.getElementById('tbHpcV').innerHTML=hpcs.map(r=>{
-    const cl=(!r.mtd||r.mtd==0)?'tr-red':(r.yoy_growth_pct||0)<-0.3?'tr-red':(r.yoy_growth_pct||0)>=0.3?'tr-green':'';
-    return`<tr class="${cl}" onclick="openPanel('${r.hpc_plant_key}')">
-      <td>
-        <strong>${r.hpc_name||'—'}</strong>
-        <div class="mono" style="font-size:9.5px;color:var(--muted)">${r.hpc_plant_key}</div>
-      </td>
-      <td>${r.region||'—'}</td><td style="color:var(--muted)">${r.zone||'—'}</td>
-      <td><strong>${F.n(r.mtd)}</strong></td>
-      <td>${F.n(r.lm)}</td><td>${F.n(r.lymtd)}</td>
-      <td>${gb(r.yoy_growth_pct)}</td><td>${gb(r.mom_growth_pct)}</td>
-      <td style="color:var(--amber)">${F.f3(r.mtd_avg_fat)}</td>
-      <td>₹${F.f2(r.mtd_rate)}</td>
-      <td>${spill(r)}</td>
-    </tr>`;
-  }).join('')||'<tr><td colspan="11" style="text-align:center;padding:28px;color:var(--muted)">No centers match filter</td></tr>';
+  // 4. Pagination
+  const totalItems = hpcs.length;
+  const curPage = TBL_PAGES.hpc;
+  const pagedData = hpcs.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE);
 
-  // ── FARMER STRENGTH VIEW ───────────────────────────────────────
-  const fhMap={};
-  (D.farmer_health||[]).forEach(h=>fhMap[h.hpc_plant_key]=h);
+  // 5. HTML Rendering
+  if(_hpcView === 'volume') {
+    document.getElementById('tbHpcV').innerHTML=pagedData.map(r=>{
+      const cl=(!r.mtd||r.mtd==0)?'tr-red':(r.yoy_growth_pct||0)<-0.3?'tr-red':(r.yoy_growth_pct||0)>=0.3?'tr-green':'';
+      const repHtml = (r.hpr_name || r.mobile_no) ? `<div style="margin-top:8px; font-size:10.5px; color:var(--muted); display:flex; align-items:center; gap:6px;"><span>👤 ${r.hpr_name||'N/A'}</span>${r.mobile_no ? `<a href="tel:${r.mobile_no}" style="color:var(--brand);text-decoration:none;background:var(--brand-lt);padding:2px 6px;border-radius:4px;border:1px solid var(--brand-bdr);font-weight:700;" onclick="event.stopPropagation()">📞 ${r.mobile_no}</a>` : ''}</div>` : '';
+      
+      return`<tr class="${cl}" onclick="openPanel('${r.hpc_plant_key}')">
+        <td><strong>${r.hpc_name||'—'}</strong><div class="mono" style="font-size:10px;color:var(--muted)">${r.hpc_plant_key}</div>${repHtml}</td>
+        <td>${r.region||'—'}</td><td style="color:var(--muted)">${r.zone||'—'}</td><td><strong>${F.n(r.mtd)}</strong></td><td>${F.n(r.lm)}</td><td>${F.n(r.lymtd)}</td><td>${gb(r.yoy_growth_pct)}</td><td>${gb(r.mom_growth_pct)}</td><td style="color:var(--amber)">${F.f3(r.mtd_avg_fat)}</td><td>₹${F.f2(r.mtd_rate)}</td><td>${spill(r)}</td>
+      </tr>`;
+    }).join('')||'<tr><td colspan="11" style="text-align:center;padding:28px;color:var(--muted)">No centers match filter</td></tr>';
+  } else {
+    const fhMap={}; (D.farmer_health||[]).forEach(h=>fhMap[h.hpc_plant_key]=h);
+    const SEGS={'Stable':'p-grow','Growing':'p-star','At Risk':'p-dec','Churning':'p-crit'};
+    
+    document.getElementById('tbHpcF').innerHTML=pagedData.map(r=>{
+      const fh=fhMap[r.hpc_plant_key], chg=(r.mtd_farmers||0)-(r.lm_farmers||0), chgCl=chg>0?'b-g':chg<0?'b-r':'b-m', attrPct=fh?.attrition_pct||0, attrCl=attrPct>25?'style="color:var(--red);font-weight:700"':attrPct>10?'style="color:var(--amber)"':'style="color:var(--muted)"', segClass=SEGS[fh?.segment]||'p-dark';
+      const repHtml = (r.hpr_name || r.mobile_no) ? `<div style="margin-top:8px; font-size:10.5px; color:var(--muted); display:flex; align-items:center; gap:6px;"><span>👤 ${r.hpr_name||'N/A'}</span>${r.mobile_no ? `<a href="tel:${r.mobile_no}" style="color:var(--brand);text-decoration:none;background:var(--brand-lt);padding:2px 6px;border-radius:4px;border:1px solid var(--brand-bdr);font-weight:700;" onclick="event.stopPropagation()">📞 ${r.mobile_no}</a>` : ''}</div>` : '';
+      
+      return`<tr onclick="openPanel('${r.hpc_plant_key}')">
+        <td><strong>${r.hpc_name||'—'}</strong><div class="mono" style="font-size:10px;color:var(--muted)">${r.hpc_plant_key}</div>${repHtml}</td>
+        <td>${r.region||'—'}</td><td style="color:var(--muted)">${r.zone||'—'}</td><td><strong>${F.n(r.mtd_farmers)}</strong></td><td>${F.n(r.lm_farmers)}</td><td><span class="b ${chgCl}">${chg>=0?'+':''}${F.n(chg)}</span></td><td>${fh?F.n(fh.consistent):'—'}</td><td>${fh?(fh.irregular||0)>0?`<span style="color:var(--amber)">${F.n(fh.irregular)}</span>`:'—':'—'}</td><td ${attrCl}>${fh?F.f1(attrPct)+'%':'—'}</td><td>${fh?`<span style="color:var(--green)">+${F.n(fh.acquired)}</span>`:'—'}</td><td>${fh?`<span style="color:var(--red)">-${F.n(fh.churned)}</span>`:'—'}</td><td>${fh?`<span class="pill ${segClass}">${fh.segment}</span>`:'—'}</td>
+      </tr>`;
+    }).join('')||'<tr><td colspan="12" style="text-align:center;padding:28px;color:var(--muted)">No centers match filter</td></tr>';
+  }
 
-  const SEGS={'Stable':'p-grow','Growing':'p-star','At Risk':'p-dec','Churning':'p-crit'};
-
-  document.getElementById('tbHpcF').innerHTML=hpcs.map(r=>{
-    const fh=fhMap[r.hpc_plant_key];
-    const chg=(r.mtd_farmers||0)-(r.lm_farmers||0);
-    const chgCl=chg>0?'b-g':chg<0?'b-r':'b-m';
-    const attrPct=fh?.attrition_pct||0;
-    const attrCl=attrPct>25?'style="color:var(--red);font-weight:700"':attrPct>10?'style="color:var(--amber)"':'style="color:var(--muted)"';
-    const segClass=SEGS[fh?.segment]||'p-dark';
-    return`<tr onclick="openPanel('${r.hpc_plant_key}')">
-      <td>
-        <strong>${r.hpc_name||'—'}</strong>
-        <div class="mono" style="font-size:9.5px;color:var(--muted)">${r.hpc_plant_key}</div>
-      </td>
-      <td>${r.region||'—'}</td><td style="color:var(--muted)">${r.zone||'—'}</td>
-      <td><strong>${F.n(r.mtd_farmers)}</strong></td>
-      <td>${F.n(r.lm_farmers)}</td>
-      <td><span class="b ${chgCl}">${chg>=0?'+':''}${F.n(chg)}</span></td>
-      <td>${fh?F.n(fh.consistent):'—'}</td>
-      <td>${fh?(fh.irregular||0)>0?`<span style="color:var(--amber)">${F.n(fh.irregular)}</span>`:'—':'—'}</td>
-      <td ${attrCl}>${fh?F.f1(attrPct)+'%':'—'}</td>
-      <td>${fh?`<span style="color:var(--green)">+${F.n(fh.acquired)}</span>`:'—'}</td>
-      <td>${fh?`<span style="color:var(--red)">-${F.n(fh.churned)}</span>`:'—'}</td>
-      <td>${fh?`<span class="pill ${segClass}">${fh.segment}</span>`:'—'}</td>
-    </tr>`;
-  }).join('')||'<tr><td colspan="12" style="text-align:center;padding:28px;color:var(--muted)">No centers match filter</td></tr>';
+  document.getElementById('pagHpc').innerHTML = buildPagination(totalItems, 'hpc', 'renderHpcTable');
 }
 
-/* ── FARMERS ── */
+/* FARMERS */
 function renderFarmers(){
   const rfm=filt(D.farmer_rfm||[]);
-  const farmers=rfm;
-  const consistent=farmers.filter(f=>f.delivery_days>=25).length;
-  const irregular=farmers.filter(f=>f.delivery_days<10).length;
-  const qrisk=farmers.filter(f=>(f.quality_risk||0)>0).length;
+  const consistent=rfm.filter(f=>f.delivery_days>=25).length, irregular=rfm.filter(f=>f.delivery_days<10).length, qrisk=rfm.filter(f=>(f.quality_risk||0)>0).length;
 
   document.getElementById('fmrKpis').innerHTML=[
-    {icon:'👨‍🌾',ibg:CL.greenlt, l:'Active Farmers',     v:F.n(farmers.length),               ctx:'Delivered at least once',            ac:CL.green},
-    {icon:'✅', ibg:CL.teallt,  l:'Consistent (≥25d)',  v:F.n(consistent),                   ctx:'<span class="b b-g">'+(farmers.length?((consistent/farmers.length)*100).toFixed(0):0)+'% of total</span>', ac:CL.teal},
+    {icon:'👨‍🌾',ibg:CL.greenlt, l:'Active Farmers',     v:F.n(rfm.length),               ctx:'Delivered at least once',            ac:CL.green},
+    {icon:'✅', ibg:CL.teallt,  l:'Consistent (≥25d)',  v:F.n(consistent),                   ctx:'<span class="b b-g">'+(rfm.length?((consistent/rfm.length)*100).toFixed(0):0)+'% of total</span>', ac:CL.teal},
     {icon:'⚠️', ibg:CL.redlt,   l:'Irregular (&lt;10d)',v:F.n(irregular),                    ctx:'<span class="b b-r">Attendance risk</span>',     ac:CL.red},
     {icon:'🧪', ibg:CL.amberlt, l:'Quality Risk',        v:F.n(qrisk),                        ctx:'<span class="b b-a">Low FAT</span>',              ac:CL.amber},
-    {icon:'💰', ibg:CL.bluelt,  l:'Total Payout',        v:F.cr(sF(farmers,'total_payout')),  ctx:'This month',                                      ac:CL.blue},
-  ].map(h=>`<div class="kpi" style="--k-accent:${h.ac}">
-    <div class="k-icon" style="background:${h.ibg}">${h.icon}</div>
-    <div class="k-label">${h.l}</div><div class="k-value">${h.v}</div><div class="k-ctx">${h.ctx}</div>
-  </div>`).join('');
+    {icon:'💰', ibg:CL.bluelt,  l:'Total Payout',        v:F.cr(sF(rfm,'total_payout')),  ctx:'This month',                                      ac:CL.blue},
+  ].map(h=>`<div class="kpi" style="--k-accent:${h.ac}"><div class="k-icon" style="background:${h.ibg}">${h.icon}</div><div class="k-label">${h.l}</div><div class="k-value">${h.v}</div><div class="k-ctx">${h.ctx}</div></div>`).join('');
 
-  // ── RFM Tier Summary Cards ───────────────────────────────────────────────
   const TIERS=[
-    {t:'Champion', icon:'🥇', c:CL.teal,  cl:'rgba(13,122,106,.1)', act:'Protect & reward — prioritise bonus schemes', sortBy:'total_payout'},
-    {t:'Loyal',    icon:'🌱', c:CL.green, cl:'rgba(22,128,60,.1)', act:'Grow LPD — offer breed support programs',      sortBy:'total_qty_ltr'},
-    {t:'At Risk',  icon:'⚠️', c:CL.amber, cl:'rgba(180,83,9,.1)', act:'Call now — check payment or rate issues',      sortBy:'total_payout'},
-    {t:'Dormant',  icon:'💤', c:'#8a7d72',cl:'var(--warm)',act:'Field visit — recovery window closing',        sortBy:'total_payout'},
-    {t:'Churned',  icon:'🔴', c:CL.red,   cl:'rgba(196,18,48,.1)', act:'Understand why — attempt win-back',            sortBy:'total_payout'},
+    {t:'Champion', icon:'🥇', c:CL.teal,  cl:'rgba(13,122,106,.1)', act:'Protect & reward'},
+    {t:'Loyal',    icon:'🌱', c:CL.green, cl:'rgba(22,128,60,.1)', act:'Grow LPD (breed support)'},
+    {t:'At Risk',  icon:'⚠️', c:CL.amber, cl:'rgba(180,83,9,.1)', act:'Call now (payment/rate check)'},
+    {t:'Dormant',  icon:'💤', c:'#8a7d72',cl:'var(--surface2)',act:'Field visit (recovery window closing)'},
+    {t:'Churned',  icon:'🔴', c:CL.red,   cl:'rgba(196,18,48,.1)', act:'Understand why — attempt win-back'},
   ];
   document.getElementById('rfmTierCards').innerHTML=TIERS.map(tier=>{
-    const items=rfm.filter(r=>r.tier===tier.t);
-    const vol=sF(items,'total_qty_ltr'), pay=sF(items,'total_payout');
-    const avgLpd=items.length?aF(items,'lpd'):0;
-    // Dormant/Churned show last-active-month volume (what was lost)
-    const isDC = tier.t==='Dormant'||tier.t==='Churned';
-    const volLabel = isDC ? 'Lost Vol (last active)' : 'Vol';
-    const payLabel = isDC ? 'Lost Payout' : '';
-    return`<div onclick="setTierFilter('${tier.t}')" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;cursor:pointer;border-top:3px solid ${tier.c};transition:box-shadow .15s,transform .1s" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';this.style.transform='translateY(-1px)'" onmouseout="this.style.boxShadow='';this.style.transform=''">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="font-size:18px">${tier.icon}</span>
-        <span style="font-family:var(--font-head);font-size:22px;font-weight:800;color:var(--ink)">${F.n(items.length)}</span>
-      </div>
-      <div style="font-family:var(--font-head);font-size:12px;font-weight:700;color:${tier.c};margin-bottom:6px">${tier.t}</div>
-      <div style="font-size:10.5px;color:${isDC?'var(--red)':'var(--muted)'};margin-bottom:3px;font-weight:${isDC?600:400}">
-        ${volLabel}: ${F.n(vol)} L &nbsp;·&nbsp; ${F.cr(pay)}
-      </div>
-      <div style="font-size:10.5px;color:var(--muted);margin-bottom:8px">Avg LPD: ${F.f1(avgLpd)}${isDC?' (when active)':''}</div>
-      <div style="font-size:10px;color:var(--ink2);background:${tier.cl};padding:4px 8px;border-radius:5px;line-height:1.4">${tier.act}</div>
+    const items=rfm.filter(r=>r.tier===tier.t), vol=sF(items,'total_qty_ltr'), pay=sF(items,'total_payout'), avgLpd=items.length?aF(items,'lpd'):0, isDC = tier.t==='Dormant'||tier.t==='Churned';
+    return`<div onclick="setTierFilter('${tier.t}')" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;border-top:3px solid ${tier.c};transition:box-shadow .15s,transform .1s" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.08)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='';this.style.transform=''">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:20px">${tier.icon}</span><span style="font-family:var(--font-head);font-size:24px;font-weight:800;color:var(--ink)">${F.n(items.length)}</span></div>
+      <div style="font-family:var(--font-head);font-size:13px;font-weight:700;color:${tier.c};margin-bottom:6px">${tier.t}</div>
+      <div style="font-size:11.5px;color:${isDC?'var(--red)':'var(--muted)'};margin-bottom:4px;font-weight:${isDC?600:500}">${isDC?'Lost Vol':'Vol'}: ${F.n(vol)} L</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Avg LPD: ${F.f1(avgLpd)}${isDC?' (when active)':''}</div>
+      <div style="font-size:10.5px;color:var(--ink2);background:${tier.cl};padding:6px 10px;border-radius:6px;line-height:1.4;font-weight:500">${tier.act}</div>
     </div>`;
   }).join('');
 
-  // ── Charts ───────────────────────────────────────────────────────────────
-  const COLS={Champion:CL.teal,Loyal:CL.green,'At Risk':CL.amber,Dormant:'#8a7d72',Churned:CL.red};
-  const ICONS={Champion:'🥇',Loyal:'🌱','At Risk':'⚠️',Dormant:'💤',Churned:'🔴'};
-  dc('cRfm');
-  charts['cRfm']=new Chart(document.getElementById('cRfm').getContext('2d'),{
-    type:'bar',
-    data:{
-      labels:TIERS.map(t=>t.icon+' '+t.t),
-      datasets:[
-        {label:'Farmers',data:TIERS.map(t=>rfm.filter(r=>r.tier===t.t).length),backgroundColor:TIERS.map(t=>t.c+'cc'),borderColor:TIERS.map(t=>t.c),borderWidth:1.5,borderRadius:5,yAxisID:'y'},
-        {label:'Payout ₹L',data:TIERS.map(t=>Math.round(sF(rfm.filter(r=>r.tier===t.t),'total_payout')/100000)),backgroundColor:'transparent',borderColor:TIERS.map(t=>t.c),borderWidth:2,type:'line',pointRadius:5,pointBackgroundColor:TIERS.map(t=>t.c),yAxisID:'y2'},
-      ]
-    },
-    options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
-      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,color:CL.muted}}},
-      scales:{
-        x:{grid:{display:false},ticks:{color:CL.muted}},
-        y:{grid:{color:'rgba(0,0,0,0.04)'},title:{display:true,text:'Farmers',color:CL.muted},ticks:{color:CL.muted}},
-        y2:{position:'right',grid:{display:false},title:{display:true,text:'Payout ₹L',color:CL.muted},ticks:{color:CL.muted}},
-      }
-    }
-  });
-
-  const att=[{l:'1–5d',a:1,b:5},{l:'6–10d',a:6,b:10},{l:'11–15d',a:11,b:15},{l:'16–20d',a:16,b:20},{l:'21–25d',a:21,b:25},{l:'26+d',a:26,b:99}];
-  const ad=att.map(x=>({l:x.l,v:farmers.filter(f=>f.delivery_days>=x.a&&f.delivery_days<=x.b).length}));
-  dc('cAtt');
-  charts['cAtt']=new Chart(document.getElementById('cAtt').getContext('2d'),{
-    type:'bar',data:{labels:ad.map(r=>r.l),datasets:[{data:ad.map(r=>r.v),backgroundColor:[CL.red,CL.red,CL.amber,CL.amber,CL.green,CL.teal],borderRadius:5,borderSkipped:false}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{x:{grid:{display:false},ticks:{color:CL.muted}},y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:CL.muted}}}}
-  });
+  dc('cRfm'); charts['cRfm']=new Chart(document.getElementById('cRfm').getContext('2d'),{ type:'bar', data:{ labels:TIERS.map(t=>t.icon+' '+t.t), datasets:[ {label:'Farmers',data:TIERS.map(t=>rfm.filter(r=>r.tier===t.t).length),backgroundColor:TIERS.map(t=>t.c+'cc'),borderColor:TIERS.map(t=>t.c),borderWidth:1.5,borderRadius:5,yAxisID:'y'}, {label:'Payout ₹L',data:TIERS.map(t=>Math.round(sF(rfm.filter(r=>r.tier===t.t),'total_payout')/100000)),backgroundColor:'transparent',borderColor:TIERS.map(t=>t.c),borderWidth:2,type:'line',pointRadius:5,pointBackgroundColor:TIERS.map(t=>t.c),yAxisID:'y2'}, ] }, options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'}, plugins:{legend:{display:true,position:'top'}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.04)'},title:{display:true,text:'Farmers'}},y2:{position:'right',grid:{display:false},title:{display:true,text:'Payout ₹L'}}} }});
+  const att=[{l:'1–5d',a:1,b:5},{l:'6–10d',a:6,b:10},{l:'11–15d',a:11,b:15},{l:'16–20d',a:16,b:20},{l:'21–25d',a:21,b:25},{l:'26+d',a:26,b:99}]; const ad=att.map(x=>({l:x.l,v:rfm.filter(f=>f.delivery_days>=x.a&&f.delivery_days<=x.b).length}));
+  dc('cAtt'); charts['cAtt']=new Chart(document.getElementById('cAtt').getContext('2d'),{ type:'bar',data:{labels:ad.map(r=>r.l),datasets:[{data:ad.map(r=>r.v),backgroundColor:[CL.red,CL.red,CL.amber,CL.amber,CL.green,CL.teal],borderRadius:5}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.04)'}}}} });
 
   renderFarmerTable();
 }
 
-function setTierFilter(tier){
-  document.getElementById('rfmF').value=tier;
-  renderFarmerTable();
-  // Scroll to table
-  document.querySelector('#pg-farmers .tbl-card').scrollIntoView({behavior:'smooth',block:'start'});
-}
+function setTierFilter(tier){ document.getElementById('rfmF').value=tier; resetPage('farmers'); renderFarmerTable(); document.querySelector('#pg-farmers .tbl-card').scrollIntoView({behavior:'smooth',block:'start'}); }
 
 function renderFarmerTable(){
-  const ff=document.getElementById('rfmF').value;
-  const rf=document.getElementById('fReg').value;
-  const sort=document.getElementById('fSort')?.value||'total_payout';
-  // srch handled by filterRows()
+  const ff=document.getElementById('rfmF').value, rf=document.getElementById('fReg').value, sort=document.getElementById('fSort')?.value||'total_payout';
   let data=filt(D.farmer_rfm||[]);
-  if(ff==='recovery') data=data.filter(r=>r.tier==='At Risk'||r.tier==='Dormant');
-  else if(ff&&ff!=='') data=data.filter(r=>r.tier===ff);
+  if(ff==='recovery') data=data.filter(r=>r.tier==='At Risk'||r.tier==='Dormant'); else if(ff&&ff!=='') data=data.filter(r=>r.tier===ff);
   if(rf) data=data.filter(r=>r.region===rf);
-  // search all fields
+  
   data = filterRows(data, 'srchFarmer');
-  // header-click sort, fallback to default sort field
-  var fSt = _sortState['tbFarmer'];
-  if(fSt && fSt.col >= 0){
-    data = sortRowsByCol(data, function(r){
-      return ['', r.farmer_name||'', r.farmer_code||'', r.hpc_plant_key||'', r.region||'',
-              r.tier||'', r.lpd, r.delivery_days, r.avg_fat, r.total_payout];
-    }, 'tbFarmer');
-  } else {
-    data=[...data].sort(function(a,b){return (b[sort]||0)-(a[sort]||0);});
-  }
-  data = data.slice(0,500);
-  const cntTxt=data.length+' farmers';
-  document.getElementById('fCnt').textContent=cntTxt;
+  var fSt = _sortState['tbFarmerT'];
+  if(fSt && fSt.col >= 0){ data = sortRowsByCol(data, r => ['', r.farmer_name||'', r.farmer_code||'', r.hpc_plant_key||'', r.region||'', r.tier||'', r.lpd, r.delivery_days, r.avg_fat, r.total_payout], 'tbFarmerT'); } 
+  else { data=[...data].sort((a,b)=>(b[sort]||0)-(a[sort]||0)); }
+  
+  // Pagination Slice
+  const totalItems = data.length;
+  const curPage = TBL_PAGES.farmers;
+  const pagedData = data.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE);
+
   const COLS={Champion:CL.teal,Loyal:CL.green,'At Risk':CL.amber,Dormant:'#8a7d72',Churned:CL.red};
   const ICONS={Champion:'🥇',Loyal:'🌱','At Risk':'⚠️',Dormant:'💤',Churned:'🔴'};
-  document.getElementById('tbFarmer').innerHTML=data.map((r,i)=>{
-    const co=COLS[r.tier]||'#8a7d72';
-    const cl=r.tier==='Churned'?'tr-red':r.tier==='At Risk'||r.tier==='Dormant'?'tr-amber':'';
-    return`<tr class="${cl}">
-      <td style="color:var(--muted);font-size:11px">${i+1}</td>
-      <td><strong>${r.farmer_name||'—'}</strong></td>
-      <td class="mono" style="font-size:10px;color:var(--muted)">${r.farmer_code}</td>
-      <td style="font-size:11px;color:var(--ink2)">${r.hpc_plant_key}</td>
-      <td>${r.region||'—'}</td>
-      <td><span style="background:${co}18;color:${co};padding:2px 9px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid ${co}33">${ICONS[r.tier]||''} ${r.tier}</span></td>
-      <td>${F.f1(r.lpd)}</td>
-      <td>${r.delivery_days||0}<span style="color:var(--muted)">/28</span></td>
-      <td style="color:var(--amber)">${F.f3(r.avg_fat)}</td>
-      <td><strong>${F.cr(r.total_payout)}</strong></td>
-    </tr>`;
+  document.getElementById('tbFarmer').innerHTML=pagedData.map((r,i)=>{
+    const co=COLS[r.tier]||'#8a7d72', cl=r.tier==='Churned'?'tr-red':r.tier==='At Risk'||r.tier==='Dormant'?'tr-amber':'';
+    return`<tr class="${cl}"><td style="color:var(--muted)">${(curPage-1)*PAGE_SIZE + i + 1}</td><td><strong>${r.farmer_name||'—'}</strong></td><td class="mono" style="font-size:11px;color:var(--muted)">${r.farmer_code}</td><td style="color:var(--ink2)">${r.hpc_plant_key}</td><td>${r.region||'—'}</td><td><span style="background:${co}18;color:${co};padding:4px 10px;border-radius:6px;font-size:11.5px;font-weight:700;border:1px solid ${co}33">${ICONS[r.tier]||''} ${r.tier}</span></td><td>${F.f1(r.lpd)}</td><td>${r.delivery_days||0}<span style="color:var(--muted-lt)">/28</span></td><td style="color:var(--amber);font-weight:600">${F.f3(r.avg_fat)}</td><td><strong>${F.cr(r.total_payout)}</strong></td></tr>`;
   }).join('')||'<tr><td colspan="10" style="text-align:center;padding:28px;color:var(--muted)">No farmers match filter</td></tr>';
+
+  document.getElementById('pagFarmers').innerHTML = buildPagination(totalItems, 'farmers', 'renderFarmerTable');
 }
 
-/* ── QUALITY ── */
+/* QUALITY */
 function renderQuality(){
-  const mhpc=filt(D.monthly_hpc);
-  const fat=wv(mhpc,'avg_fat','total_qty_ltr');
-  const snf=wv(mhpc,'avg_snf','total_qty_ltr');
-  const cost=aF(mhpc,'avg_cost_per_fat_kg');
-  const fOk=(fat||0)>=3.5, sOk=(snf||0)>=8.0, cOk=(cost||0)<900;
+  const mhpc=filt(D.monthly_hpc), fat=wv(mhpc,'avg_fat','total_qty_ltr'), snf=wv(mhpc,'avg_snf','total_qty_ltr'), cost=aF(mhpc,'avg_cost_per_fat_kg'), fOk=(fat||0)>=3.5, sOk=(snf||0)>=8.0, cOk=(cost||0)<900;
 
   document.getElementById('tlRow').innerHTML=[
     {emoji:fOk?'✅':'🚨', c:fOk?CL.green:CL.red, val:F.f3(fat)+'%', lbl:'Average FAT%',   tgt:'Target ≥ 3.5%',    sta:fOk?'On Target':'Below Target', sl:fOk?'ok':'bad'},
     {emoji:sOk?'✅':'🚨', c:sOk?CL.green:CL.red, val:F.f3(snf)+'%', lbl:'Average SNF%',   tgt:'Target ≥ 8.0%',    sta:sOk?'On Target':'Below Target', sl:sOk?'ok':'bad'},
     {emoji:cOk?'✅':'⚠️', c:cOk?CL.green:CL.amber,val:'₹'+F.f2(cost),lbl:'Cost / Fat Kg', tgt:'Benchmark ₹900/kg', sta:cOk?'Efficient':'Monitor Cost',  sl:cOk?'ok':'warn'},
-  ].map(t=>`<div class="tl" style="--tl-c:${t.c}">
-    <span class="tl-emoji">${t.emoji}</span>
-    <div class="tl-val">${t.val}</div>
-    <div class="tl-lbl">${t.lbl}</div>
-    <div class="tl-tgt">${t.tgt}</div>
-    <div class="tl-sta ${t.sl}">${t.sta}</div>
-  </div>`).join('');
+  ].map(t=>`<div class="tl" style="--tl-c:${t.c}"><span class="tl-emoji">${t.emoji}</span><div class="tl-val">${t.val}</div><div class="tl-lbl">${t.lbl}</div><div class="tl-tgt">${t.tgt}</div><div class="tl-sta ${t.sl}">${t.sta}</div></div>`).join('');
 
-  // FAT trend
   const qd=filt(D.daily), qbd=gby(qd,'proc_date');
-  const tr=Object.entries(qbd).sort(([a],[b])=>a.localeCompare(b)).map(([d,rows])=>{
-    const fk=sF(rows,'fat_kg'),sk=sF(rows,'snf_kg'),qk=sF(rows,'qty_kg');
-    return{d,fat:qk?fk/qk*100:null,snf:qk?sk/qk*100:null,inc:sF(rows,'incidents')};
-  });
-  dc('cFatT');
-  charts['cFatT']=new Chart(document.getElementById('cFatT').getContext('2d'),{
-    type:'line',data:{labels:tr.map(r=>r.d?r.d.slice(8,10)+' '+MONTHS[parseInt(r.d.slice(5,7),10)-1]+' \''+ r.d.slice(2,4):''),datasets:[
-      {label:'FAT%',data:tr.map(r=>r.fat),borderColor:CL.amber,borderWidth:2,pointRadius:0,tension:.4,fill:false},
-      {label:'SNF%',data:tr.map(r=>r.snf),borderColor:CL.teal, borderWidth:2,pointRadius:0,tension:.4,fill:false},
-      {label:'Incidents',data:tr.map(r=>r.inc),borderColor:CL.red,borderWidth:1.5,pointRadius:0,tension:.4,fill:false,yAxisID:'y2'},
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
-      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,color:CL.muted}}},
-      scales:{x:{grid:{display:false},ticks:{maxTicksLimit:12,color:CL.muted,font:{size:10},
-        callback:function(val,idx){const d=tr[idx]?.d;if(!d)return '';const day=parseInt(d.slice(8,10),10);return day===1||idx===0?fmtDateFull(d):'';}}},
-        y:{grid:{color:'rgba(0,0,0,0.04)'},title:{display:true,text:'%',color:CL.muted},ticks:{color:CL.muted}},
-        y2:{position:'right',grid:{display:false},title:{display:true,text:'Incidents',color:CL.muted},ticks:{color:CL.red}}}}
-  });
+  const tr=Object.entries(qbd).sort(([a],[b])=>a.localeCompare(b)).map(([d,rows])=>{ const fk=sF(rows,'fat_kg'),sk=sF(rows,'snf_kg'),qk=sF(rows,'qty_kg'); return{d,fat:qk?fk/qk*100:null,snf:qk?sk/qk*100:null,inc:sF(rows,'incidents')}; });
+  dc('cFatT'); charts['cFatT']=new Chart(document.getElementById('cFatT').getContext('2d'),{ type:'line',data:{labels:tr.map(r=>r.d?r.d.slice(8,10)+' '+MONTHS[parseInt(r.d.slice(5,7),10)-1]+' \''+ r.d.slice(2,4):''),datasets:[ {label:'FAT%',data:tr.map(r=>r.fat),borderColor:CL.amber,borderWidth:2,pointRadius:0,tension:.4,fill:false}, {label:'SNF%',data:tr.map(r=>r.snf),borderColor:CL.teal, borderWidth:2,pointRadius:0,tension:.4,fill:false}, {label:'Incidents',data:tr.map(r=>r.inc),borderColor:CL.red,borderWidth:1.5,pointRadius:0,tension:.4,fill:false,yAxisID:'y2'}, ]}, options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'}, plugins:{legend:{display:true,position:'top'}}, scales:{x:{grid:{display:false},ticks:{maxTicksLimit:12, callback:function(val,idx){const d=tr[idx]?.d;if(!d)return '';const day=parseInt(d.slice(8,10),10);return day===1||idx===0?fmtDateFull(d):'';}}}, y:{grid:{color:'rgba(0,0,0,0.04)'}}, y2:{position:'right',grid:{display:false},ticks:{color:CL.red}}}} });
 
-  // Economics
   const brm=gby(mhpc,'region');
-  const byR=Object.entries(brm).filter(([r])=>r).map(([region,rows])=>({
-    region,rate:aF(rows,'avg_rate_per_ltr'),cost:aF(rows,'avg_cost_per_fat_kg'),pay:sF(rows,'total_net_price'),
-  })).sort((a,b)=>(b.pay||0)-(a.pay||0)).slice(0,12);
-  dc('cEcon');
-  charts['cEcon']=new Chart(document.getElementById('cEcon').getContext('2d'),{
-    type:'bar',data:{labels:byR.map(r=>r.region),datasets:[
-      {label:'Rate ₹/L',      data:byR.map(r=>r.rate),backgroundColor:CL.green,borderRadius:4,borderSkipped:false},
-      {label:'Cost/FatKg÷10', data:byR.map(r=>r.cost?r.cost/10:null),backgroundColor:CL.red,borderRadius:4,borderSkipped:false},
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,padding:12,color:CL.muted}}},
-      scales:{x:{grid:{display:false},ticks:{color:CL.muted,font:{size:10},maxRotation:45}},y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:CL.muted}}}}
-  });
+  const byR=Object.entries(brm).filter(([r])=>r).map(([region,rows])=>({ region,rate:aF(rows,'avg_rate_per_ltr'),cost:aF(rows,'avg_cost_per_fat_kg'),pay:sF(rows,'total_net_price'), })).sort((a,b)=>(b.pay||0)-(a.pay||0)).slice(0,12);
+  dc('cEcon'); charts['cEcon']=new Chart(document.getElementById('cEcon').getContext('2d'),{ type:'bar',data:{labels:byR.map(r=>r.region),datasets:[ {label:'Rate ₹/L', data:byR.map(r=>r.rate),backgroundColor:CL.green,borderRadius:4}, {label:'Cost/FatKg÷10', data:byR.map(r=>r.cost?r.cost/10:null),backgroundColor:CL.red,borderRadius:4}, ]}, options:{responsive:true,maintainAspectRatio:false, plugins:{legend:{display:true,position:'top'}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.04)'}}}} });
 
-  // Quality table
-  const allR=Object.entries(gby(mhpc,'region')).filter(([r])=>r).map(([region,rows])=>({
-    region,fat:wv(rows,'avg_fat','total_qty_ltr'),snf:wv(rows,'avg_snf','total_qty_ltr'),
-    dumps:sF(rows,'dumping_incidents'),rate:aF(rows,'avg_rate_per_ltr'),
-    cost:aF(rows,'avg_cost_per_fat_kg'),ip:aF(rows,'incentive_pct'),pay:sF(rows,'total_net_price'),
-  })).sort((a,b)=>(b.fat||0)-(a.fat||0));
-
-  // search all fields + header sort
+  let allR=Object.entries(gby(mhpc,'region')).filter(([r])=>r).map(([region,rows])=>({ region,fat:wv(rows,'avg_fat','total_qty_ltr'),snf:wv(rows,'avg_snf','total_qty_ltr'), dumps:sF(rows,'dumping_incidents'),rate:aF(rows,'avg_rate_per_ltr'), cost:aF(rows,'avg_cost_per_fat_kg'),ip:aF(rows,'incentive_pct'),pay:sF(rows,'total_net_price'), })).sort((a,b)=>(b.fat||0)-(a.fat||0));
   allR = filterRows(allR, 'srchQl');
-  allR = sortRowsByCol(allR, function(r){
-    return [r.region, r.fat, r.snf, r.dumps, r.rate, r.cost, r.ip, r.pay];
-  }, 'tbQl');
-  const qlCntEl=document.getElementById('qlCnt');
-  if(qlCntEl) qlCntEl.textContent=allR.length+' regions';
+  allR = sortRowsByCol(allR, r => [r.region, r.fat, r.snf, r.dumps, r.rate, r.cost, r.ip, r.pay], 'tbQlT');
 
-  document.getElementById('tbQl').innerHTML=allR.map(r=>{
+  // Pagination Slice
+  const totalItems = allR.length;
+  const curPage = TBL_PAGES.quality;
+  const pagedData = allR.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE);
+
+  document.getElementById('tbQl').innerHTML=pagedData.map(r=>{
     const fl=(r.fat||0)<3.5,sl=(r.snf||0)<8.0;
-    return`<tr class="${fl||sl?'tr-amber':''}">
-      <td><strong>${r.region}</strong></td>
-      <td style="color:${fl?'var(--red)':'var(--amber)'};font-weight:${fl?700:400}">${F.f3(r.fat)}${fl?' ⚠':''}</td>
-      <td style="color:${sl?'var(--red)':'var(--muted-lt)'}">${F.f3(r.snf)}${sl?' ⚠':''}</td>
-      <td>${r.dumps>0?`<span class="b b-r">${F.n(r.dumps)}</span>`:'—'}</td>
-      <td>₹${F.f2(r.rate)}</td>
-      <td>₹${F.f2(r.cost)}</td>
-      <td>${F.f1(r.ip)}%</td>
-      <td>${F.cr(r.pay)}</td>
-    </tr>`;
+    return`<tr class="${fl||sl?'tr-amber':''}"><td><strong>${r.region}</strong></td><td style="color:${fl?'var(--red)':'var(--amber)'};font-weight:${fl?700:400}">${F.f3(r.fat)}${fl?' ⚠':''}</td><td style="color:${sl?'var(--red)':'var(--muted-lt)'}">${F.f3(r.snf)}${sl?' ⚠':''}</td><td>${r.dumps>0?`<span class="b b-r">${F.n(r.dumps)}</span>`:'—'}</td><td>₹${F.f2(r.rate)}</td><td>₹${F.f2(r.cost)}</td><td>${F.f1(r.ip)}%</td><td>${F.cr(r.pay)}</td></tr>`;
   }).join('');
+
+  document.getElementById('pagQuality').innerHTML = buildPagination(totalItems, 'quality', 'renderQuality');
 }
 
-/* ── PANEL ── */
-async function openPanel(key){
-  document.getElementById('overlay').classList.add('open');
+/* PANEL */
+/* PANEL */
+async function openPanel(key) {
+  document.getElementById('overlay').classList.add('open'); 
   document.getElementById('panel').classList.add('open');
-  const info=D.hpc_list.find(h=>h.hpc_plant_key===key)||{};
-  const fh=(D.farmer_health||[]).find(h=>h.hpc_plant_key===key);
-  document.getElementById('pName').textContent=info.hpc_name||key;
-  document.getElementById('pMeta').textContent=`${info.plant_name||'—'} · ${info.region||'—'} · ${info.zone||'—'}`;
-  document.getElementById('pBody').innerHTML='<div class="loading"><div class="spin"></div> Loading…</div>';
-  const d=await fetch('/api/hpc/detail?hpc_plant_key='+encodeURIComponent(key)).then(r=>r.json());
-
-  document.getElementById('pBody').innerHTML=`
-    <div class="p-kpis">
-      ${[{l:'MTD L/Day',v:F.n(info.mtd),c:'var(--red)'},{l:'YoY',v:info.yoy_growth_pct!=null?((info.yoy_growth_pct*100).toFixed(1)+'%'):'—',c:(info.yoy_growth_pct||0)>=0?'var(--green)':'var(--red)'},{l:'MoM',v:info.mom_growth_pct!=null?((info.mom_growth_pct*100).toFixed(1)+'%'):'—',c:(info.mom_growth_pct||0)>=0?'var(--green)':'var(--red)'},{l:'Farmers',v:F.n(info.mtd_farmers),c:'var(--ink)'},{l:'FAT%',v:F.f3(info.mtd_avg_fat),c:'var(--amber)'},{l:'₹/L',v:F.f2(info.mtd_rate),c:'var(--ink)'}].map(k=>`<div class="p-kpi"><div class="pk-v" style="color:${k.c}">${k.v}</div><div class="pk-l">${k.l}</div></div>`).join('')}
-    </div>
-    ${fh?`<div class="p-sec"><div class="p-sec-t">Farmer Retention</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-        <div class="p-kpi"><div class="pk-v" style="color:var(--red)">-${F.n(fh.churned)}</div><div class="pk-l">LOST</div></div>
-        <div class="p-kpi"><div class="pk-v" style="color:var(--green)">+${F.n(fh.acquired)}</div><div class="pk-l">GAINED</div></div>
-        <div class="p-kpi"><div class="pk-v" style="color:${fh.attrition_pct>25?'var(--red)':fh.attrition_pct>10?'var(--amber)':'var(--green)'}">${F.f1(fh.attrition_pct)}%</div><div class="pk-l">ATTRITION</div></div>
-      </div></div>`:''}
-    <div class="p-sec"><div class="p-sec-t">Daily Volume</div><div style="height:120px"><canvas id="pvol"></canvas></div></div>
-    <div class="p-sec"><div class="p-sec-t">Top Farmers This Month</div>
-      <table class="dt"><thead class="sth" data-tid="tbQl" data-col="0" onclick="sortTable('tbQl',0)"><tr><th>Farmer<span class="sort-arr" id="sa_tbQl_0"></span></th><th class="sth" data-tid="tbQl" data-col="1" onclick="sortTable('tbQl',1)">LPD<span class="sort-arr" id="sa_tbQl_1"></span></th><th class="sth" data-tid="tbQl" data-col="2" onclick="sortTable('tbQl',2)">Days<span class="sort-arr" id="sa_tbQl_2"></span></th><th class="sth" data-tid="tbQl" data-col="3" onclick="sortTable('tbQl',3)">FAT%<span class="sort-arr" id="sa_tbQl_3"></span></th><th class="sth" data-tid="tbQl" data-col="4" onclick="sortTable('tbQl',4)">Payout<span class="sort-arr" id="sa_tbQl_4"></span></th></tr></thead>
-      <tbody>${(d.top_farmers||[]).map(f=>`<tr><td>${f.farmer_name||f.farmer_code}</td><td>${F.f1(f.lpd)}</td><td>${f.delivery_days}</td><td style="color:var(--amber)">${F.f3(f.avg_fat)}</td><td>${F.cr(f.payout)}</td></tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--muted)">No data</td></tr>'}</tbody></table>
+  
+  const info = D.hpc_list.find(h => h.hpc_plant_key === key) || {};
+  const fh = (D.farmer_health || []).find(h => h.hpc_plant_key === key);
+  
+  document.getElementById('pName').textContent = info.hpc_name || key; 
+  
+  // ── CONTACT BADGE ──────────────────────────────────────────────
+  let metaHtml = `${info.plant_name || '—'} · ${info.region || '—'} · ${info.zone || '—'}`;
+  
+  if (info.hpr_name || info.mobile_no) {
+    const mob = info.mobile_no || 'N/A';
+    const name = info.hpr_name || 'Representative';
+    metaHtml += `<div style="margin-top: 10px;">
+      <span style="display:inline-flex;align-items:center;gap:8px;padding:5px 12px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:20px;color:#fff;font-family:var(--font-head);font-size:11px;font-weight:700;letter-spacing:0.03em;">
+        👤 ${name} 
+        <span style="opacity:0.4">|</span> 
+        <a href="tel:${mob}" style="color:#fff;text-decoration:none;display:flex;align-items:center;gap:4px;">📞 ${mob}</a>
+      </span>
     </div>`;
+  }
+  document.getElementById('pMeta').innerHTML = metaHtml;
+  // ───────────────────────────────────────────────────────────────
 
-  dc('pvol');
-  charts['pvol']=new Chart(document.getElementById('pvol').getContext('2d'),{
-    type:'bar',data:{labels:d.daily.map(r=>r.proc_date?.slice(5)),
-      datasets:[{data:d.daily.map(r=>r.qty_ltr),backgroundColor:'rgba(196,18,48,.15)',borderColor:CL.brand,borderWidth:1,borderRadius:3,borderSkipped:false}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{x:{grid:{display:false},ticks:{maxTicksLimit:10,font:{size:9},color:CL.muted}},y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:CL.muted}}}}
-  });
+  document.getElementById('pBody').innerHTML = '<div class="loading"><div class="spin"></div> Loading…</div>';
+  
+  try {
+    const d = await fetch('/api/hpc/detail?hpc_plant_key=' + encodeURIComponent(key)).then(r => r.json());
+    
+    document.getElementById('pBody').innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px">
+        ${[
+          {l:'MTD L/Day', v:F.n(info.mtd), c:'var(--red)'},
+          {l:'YoY', v:info.yoy_growth_pct!=null?((info.yoy_growth_pct*100).toFixed(1)+'%'):'—', c:(info.yoy_growth_pct||0)>=0?'var(--green)':'var(--red)'},
+          {l:'MoM', v:info.mom_growth_pct!=null?((info.mom_growth_pct*100).toFixed(1)+'%'):'—', c:(info.mom_growth_pct||0)>=0?'var(--green)':'var(--red)'},
+          {l:'Farmers', v:F.n(info.mtd_farmers), c:'var(--ink)'},
+          {l:'FAT%', v:F.f3(info.mtd_avg_fat), c:'var(--amber)'},
+          {l:'₹/L', v:F.f2(info.mtd_rate), c:'var(--ink)'}
+        ].map(k=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px"><div style="font-family:var(--font-head);font-size:20px;font-weight:800;color:${k.c}">${k.v}</div><div style="font-family:var(--font-head);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-top:6px">${k.l}</div></div>`).join('')}
+      </div>
+      
+      ${fh ? `<div style="margin-bottom:24px"><div style="font-family:var(--font-head);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">Farmer Retention</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px"><div style="font-family:var(--font-head);font-size:20px;font-weight:800;color:var(--red)">-${F.n(fh.churned)}</div><div style="font-family:var(--font-head);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-top:6px">LOST</div></div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px"><div style="font-family:var(--font-head);font-size:20px;font-weight:800;color:var(--green)">+${F.n(fh.acquired)}</div><div style="font-family:var(--font-head);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-top:6px">GAINED</div></div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px"><div style="font-family:var(--font-head);font-size:20px;font-weight:800;color:${fh.attrition_pct>25?'var(--red)':fh.attrition_pct>10?'var(--amber)':'var(--green)'}">${F.f1(fh.attrition_pct)}%</div><div style="font-family:var(--font-head);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-top:6px">ATTRITION</div></div>
+        </div></div>` : ''}
+        
+      <div style="margin-bottom:24px"><div style="font-family:var(--font-head);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">Daily Volume</div><div style="height:140px"><canvas id="pvol"></canvas></div></div>
+      
+      <div style="margin-bottom:24px"><div style="font-family:var(--font-head);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">Top Farmers This Month</div>
+        <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden"><table class="dt"><thead><tr><th>Farmer</th><th>LPD</th><th>Days</th><th>FAT%</th><th>Payout</th></tr></thead>
+        <tbody>${(d.top_farmers||[]).map(f=>`<tr><td><strong>${f.farmer_name||f.farmer_code}</strong></td><td>${F.f1(f.lpd)}</td><td>${f.delivery_days}</td><td style="color:var(--amber)">${F.f3(f.avg_fat)}</td><td>${F.cr(f.payout)}</td></tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--muted)">No data</td></tr>'}</tbody></table></div>
+      </div>`;
+      
+    dc('pvol'); 
+    charts['pvol'] = new Chart(document.getElementById('pvol').getContext('2d'), { 
+      type: 'bar', 
+      data: {
+        labels: d.daily.map(r => r.proc_date?.slice(5)), 
+        datasets: [{data: d.daily.map(r => r.qty_ltr), backgroundColor: 'rgba(26,122,60,.15)', borderColor: CL.brand, borderWidth: 1, borderRadius: 3}]
+      }, 
+      options: {
+        responsive: true, maintainAspectRatio: false, plugins: {legend: {display: false}}, 
+        scales: {x: {grid: {display: false}}, y: {grid: {color: 'rgba(0,0,0,0.04)'}}}
+      } 
+    });
+  } catch (error) {
+    document.getElementById('pBody').innerHTML = '<div style="color: var(--red); padding: 20px;">Error loading detailed data. Please try again.</div>';
+  }
 }
+
 function closePanel(){document.getElementById('overlay').classList.remove('open');document.getElementById('panel').classList.remove('open');}
 
-/* ── BOOT ── */
-/* ── SORT STATE ── */
-var _sortState = {};  // { tableId: { col: N, dir: 1|-1 } }
-
+/* SORT & SEARCH */
+var _sortState = {};
 function sortTable(tableId, col){
-  var prev = _sortState[tableId] || {col:-1, dir:1};
-  var dir  = (prev.col === col) ? -prev.dir : -1;  // default descending on first click
+  var prev = _sortState[tableId] || {col:-1, dir:1}, dir = (prev.col === col) ? -prev.dir : -1;
   _sortState[tableId] = {col:col, dir:dir};
-
-  // Update header arrows
   document.querySelectorAll('[data-tid="'+tableId+'"]').forEach(function(th){
-    var c = parseInt(th.getAttribute('data-col'));
-    var arr = document.getElementById('sa_'+tableId+'_'+c);
-    th.classList.remove('asc','desc');
-    if(arr) arr.textContent = '';
-    if(c === col){
-      th.classList.add(dir===1?'asc':'desc');
-      if(arr) arr.textContent = dir===1 ? ' ▲' : ' ▼';
-    }
+    var c = parseInt(th.getAttribute('data-col')), arr = document.getElementById('sa_'+tableId+'_'+c);
+    th.classList.remove('asc','desc'); if(arr) arr.textContent = '';
+    if(c === col){ th.classList.add(dir===1?'asc':'desc'); if(arr) arr.textContent = dir===1 ? ' ▲' : ' ▼'; }
   });
-
-  // Re-render the relevant table
-  if(tableId==='tbRegion')     renderOverview();
-  else if(tableId==='tbHpcV'||tableId==='tbHpcF') renderHpcTable();
-  else if(tableId==='tbFarmer') renderFarmerTable();
-  else if(tableId==='tbQl')    renderQuality();
+  if(tableId==='tbRegion') { resetPage('overview'); renderOverview(); }
+  else if(tableId==='tbHpcV'||tableId==='tbHpcF') { resetPage('hpc'); renderHpcTable(); }
+  else if(tableId==='tbFarmerT') { resetPage('farmers'); renderFarmerTable(); }
+  else if(tableId==='tbQlT') { resetPage('quality'); renderQuality(); }
 }
 
-/* Generic: filter rows by search string across ALL cell text */
 function filterRows(rows, searchId){
   var q = (document.getElementById(searchId)||{value:''}).value.trim().toLowerCase();
   if(!q) return rows;
-  return rows.filter(function(r){
-    return Object.values(r).some(function(v){
-      return v !== null && v !== undefined && String(v).toLowerCase().indexOf(q) >= 0;
-    });
-  });
+  return rows.filter(r => Object.values(r).some(v => v !== null && v !== undefined && String(v).toLowerCase().indexOf(q) >= 0));
 }
 
-/* Generic: sort rows by column index — pulls cell text from rendered HTML */
 function sortRowsByCol(rows, cells_fn, tableId){
-  var st = _sortState[tableId];
-  if(!st || st.col < 0) return rows;
+  var st = _sortState[tableId]; if(!st || st.col < 0) return rows;
   var col = st.col, dir = st.dir;
-  return rows.slice().sort(function(a, b){
-    var av = cells_fn(a)[col] || '';
-    var bv = cells_fn(b)[col] || '';
-    // Try numeric sort
-    var an = parseFloat(String(av).replace(/[^0-9.-]/g,''));
-    var bn = parseFloat(String(bv).replace(/[^0-9.-]/g,''));
+  return rows.slice().sort((a, b) => {
+    var av = cells_fn(a)[col] || '', bv = cells_fn(b)[col] || '';
+    var an = parseFloat(String(av).replace(/[^0-9.-]/g,'')), bn = parseFloat(String(bv).replace(/[^0-9.-]/g,''));
     if(!isNaN(an) && !isNaN(bn)) return dir*(an-bn);
     return dir * String(av).localeCompare(String(bv));
   });
 }
 
-/* ── EXPORT CSV ── */
-function exportCSV(tableId, filename){
-  var tbl=document.getElementById(tableId);
-  if(!tbl) return;
-  var rows=[];
-  tbl.querySelectorAll('thead tr').forEach(function(tr){
-    rows.push(Array.from(tr.querySelectorAll('th')).map(function(th){
-      return '"'+(th.innerText||'').replace(/"/g,'""')+'"';
-    }).join(','));
-  });
-  tbl.querySelectorAll('tbody tr').forEach(function(tr){
-    var cells=Array.from(tr.querySelectorAll('td')).map(function(td){
-      var v=(td.innerText||'').trim().replace(/\s+/g,' ').replace(/"/g,'""');
-      return '"'+v+'"';
+/* CSV EXPORT WITH PAGINATION BYPASS */
+function exportCSV(tableId, filename, renderFnName, stateKey) {
+    // 1. Save pagination state & force render all rows
+    const originalPage = TBL_PAGES[stateKey];
+    const originalSize = PAGE_SIZE;
+    PAGE_SIZE = 999999; 
+    TBL_PAGES[stateKey] = 1;
+    window[renderFnName](); 
+
+    // 2. Export DOM
+    var tbl=document.getElementById(tableId);
+    var rows=[];
+    tbl.closest('table').querySelectorAll('thead tr').forEach(function(tr){
+      rows.push(Array.from(tr.querySelectorAll('th')).map(function(th){
+        return '"'+(th.innerText||'').replace(/"/g,'""').replace(' ▲','').replace(' ▼','')+'"';
+      }).join(','));
     });
-    if(cells.length) rows.push(cells.join(','));
-  });
-  var blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
-  a.href=url;
-  a.download=filename+'_'+new Date().toISOString().slice(0,10)+'.csv';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
+    tbl.querySelectorAll('tr').forEach(function(tr){
+      var cells=Array.from(tr.querySelectorAll('td')).map(function(td){
+        var v=(td.innerText||'').trim().replace(/\s+/g,' ').replace(/"/g,'""');
+        return '"'+v+'"';
+      });
+      if(cells.length) rows.push(cells.join(','));
+    });
+    var blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url; a.download=filename+'_'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 
-/* ── NOTIFICATION PANEL ── */
-function openNotifPanel(){
-  document.getElementById('notifOverlay').style.display='block';
-  document.getElementById('notifPanel').style.transform='translateX(0)';
-  renderNotifPanel();
-}
-function closeNotifPanel(){
-  document.getElementById('notifOverlay').style.display='none';
-  document.getElementById('notifPanel').style.transform='translateX(100%)';
-}
-
-function renderNotifPanel(){
-  if(!D) return;
-  const data=D.insights||[];
-  const crit=data.filter(d=>d.priority==='critical');
-  const warn=data.filter(d=>d.priority==='warning');
-  const pos=data.filter(d=>d.priority==='positive');
-  const icons={critical:'🚨',warning:'⚠️',positive:'✅'};
-
-  document.getElementById('notifSubtitle').textContent=
-    `${crit.length} critical · ${warn.length} warnings · ${pos.length} positive`;
-
-  document.getElementById('notifChips').innerHTML=[
-    {lbl:crit.length+' Critical', bg:'rgba(255,255,255,.15)', c:'rgba(248,113,113,.9)', show:crit.length>0},
-    {lbl:warn.length+' Warnings', bg:'rgba(255,255,255,.12)', c:'rgba(251,191,36,.9)',  show:warn.length>0},
-    {lbl:pos.length+' Positive',  bg:'rgba(255,255,255,.12)', c:'rgba(255,255,255,.7)', show:pos.length>0},
-  ].filter(c=>c.show).map(c=>`<span style="background:${c.bg};color:${c.c};font-family:var(--font-head);font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.15)">${c.lbl}</span>`).join('');
-
-  if(!data.length){
-    document.getElementById('notifBody').innerHTML='<div style="color:var(--muted);padding:20px;text-align:center;font-style:italic">No insights available for the current period.</div>';
-    return;
-  }
-
-  const mkGroup=(items,lbl,cls)=>{
-    if(!items.length) return '';
-    return`<div class="notif-group-lbl">${lbl}</div>`+items.map(i=>`
-      <div class="notif-card ${cls}">
-        <div class="notif-icon">${icons[i.priority]||'ℹ️'}</div>
-        <div style="flex:1;min-width:0">
-          <div class="notif-cat">${i.category}</div>
-          <div class="notif-title">${i.title}</div>
-          <div class="notif-detail">${i.detail}</div>
-          <div class="notif-action">→ ${i.action}</div>
-        </div>
-      </div>`).join('');
-  };
-
-  document.getElementById('notifBody').innerHTML=
-    mkGroup(crit,'🚨 Critical — Act Today','crit')+
-    mkGroup(warn,'⚠️ Warnings — Monitor','warn')+
-    mkGroup(pos,'✅ Positive Signals','pos');
+    // 3. Restore pagination
+    PAGE_SIZE = originalSize;
+    TBL_PAGES[stateKey] = originalPage;
+    window[renderFnName]();
 }
 
 async function boot(){
   const fill=p=>document.getElementById('bfill').style.width=p+'%';
   const msg=t=>document.getElementById('bmsg').textContent=t;
-  const animNum=(target)=>{
-    const el=document.getElementById('bcount');
-    const start=Date.now(), dur=700;
-    const tick=()=>{
-      const p=Math.min((Date.now()-start)/dur,1);
-      el.textContent=Math.round(p*p*(p)*target+p*(1-p*p)*target*.8).toLocaleString('en-IN');
-      if(p<1) requestAnimationFrame(tick); else el.textContent=target.toLocaleString('en-IN');
-    };
-    tick();
-  };
+  const animNum=(target)=>{ const el=document.getElementById('bcount'); const start=Date.now(), dur=700; const tick=()=>{ const p=Math.min((Date.now()-start)/dur,1); el.textContent=Math.round(p*p*(p)*target+p*(1-p*p)*target*.8).toLocaleString('en-IN'); if(p<1) requestAnimationFrame(tick); else el.textContent=target.toLocaleString('en-IN'); }; tick(); };
   try{
     msg('Connecting to server…'); fill(8);
     const res=await fetch('/api/bootstrap');
     if(res.status===401){window.location.href='/login';return;}
     msg('Receiving data…'); fill(30);
     D=await res.json(); fill(60);
-    // Apply user context from D.user (injected by server for scoped roles)
     if(D.user){
-      const u=D.user;
-      document.getElementById('hUserName').textContent=u.full_name||u.role;
+      const u=D.user; 
+      document.getElementById('hUserName').textContent=u.full_name||u.role; 
       document.getElementById('hUserRole').textContent=u.role.toUpperCase();
-      // Show scope banner for non-CXO users
-      const scopeEl=document.getElementById('scopeBanner');
-      const scopeTxt=document.getElementById('scopeBannerText');
+      
+      const scopeEl=document.getElementById('scopeBanner'), scopeTxt=document.getElementById('scopeBannerText');
+      
       if(u.role!=='cxo'&&u.role!=='admin'){
-        let scopeStr='';
-        if(u.scope_plant)  scopeStr=`Viewing: Plant ${u.scope_plant} · ${u.scope_region}`;
-        else if(u.scope_region) scopeStr=`Viewing: ${u.scope_region} Region · ${u.scope_zone}`;
-        else if(u.scope_zone)   scopeStr=`Viewing: ${u.scope_zone}`;
+        let scopeStr=''; 
+        if(u.scope_plant) scopeStr=`Viewing: Plant ${u.scope_plant} · ${u.scope_region}`; 
+        else if(u.scope_region) scopeStr=`Viewing: ${u.scope_region} Region · ${u.scope_zone}`; 
+        else if(u.scope_zone) scopeStr=`Viewing: ${u.scope_zone}`;
         if(scopeStr){ scopeTxt.textContent=scopeStr; scopeEl.style.display='block'; }
+
+        // --- NEW: Hide the "All India" filter bar completely for restricted users ---
+        const fBar = document.querySelector('.filter-bar');
+        if(fBar) fBar.style.display = 'none';
+        // ----------------------------------------------------------------------------
       }
-      // Lock global filter selects for scoped users
-      if(u.role==='plant'||u.role==='rh'||u.role==='zh'){
-        ['gfZone','gfRegion','gfPlant'].forEach(id=>{
-          const el=document.getElementById(id); if(el) el.disabled=true;
-        });
-        document.getElementById('scopeBtn').style.opacity='0.5';
-        document.getElementById('scopeBtn').style.pointerEvents='none';
+      
+      if(u.role==='plant'||u.role==='rh'||u.role==='zh'){ 
+        ['gfZone','gfRegion','gfPlant'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=true; }); 
+        document.getElementById('scopeBtn').style.opacity='0.5'; 
+        document.getElementById('scopeBtn').style.pointerEvents='none'; 
       }
     }
-    const hc=(D.hpc_list||[]).length;
-    animNum(hc);
-    document.getElementById('bclbl').textContent='collection centers loaded';
-    msg('Building filters…'); fill(72);
-    populateFilters();
-    msg('Rendering dashboard…'); fill(84);
-    await new Promise(r=>setTimeout(r,0));
-    renderOverview(); fill(96);
-    // Show/hide Quality tab based on role (D.user set for scoped users; check again for CXO)
-    const _role = D.user ? D.user.role : 'cxo';
-    const _qtab = document.getElementById('tabQuality');
-    if(_qtab) _qtab.style.display = (_role==='cxo'||_role==='admin') ? '' : 'none';
-    msg(`${hc.toLocaleString()} centers · ${(D.farmer_rfm||[]).length.toLocaleString()} farmers · ready`);
-    fill(100);
-    await new Promise(r=>setTimeout(r,500));
-    document.getElementById('boot').classList.add('gone');
-    setTimeout(()=>document.getElementById('boot').style.display='none',500);
+    
+    const hc=(D.hpc_list||[]).length; animNum(hc); document.getElementById('bclbl').textContent='collection centers loaded';
+    msg('Building filters…'); fill(72); populateFilters();
+    msg('Rendering dashboard…'); fill(84); await new Promise(r=>setTimeout(r,0)); renderOverview(); fill(96);
+    const _role = D.user ? D.user.role : 'cxo', _qtab = document.getElementById('tabQuality'); if(_qtab) _qtab.style.display = (_role==='cxo'||_role==='admin') ? '' : 'none';
+    msg(`${hc.toLocaleString()} centers · ${(D.farmer_rfm||[]).length.toLocaleString()} farmers · ready`); fill(100);
+    await new Promise(r=>setTimeout(r,500)); document.getElementById('boot').classList.add('gone'); setTimeout(()=>document.getElementById('boot').style.display='none',500);
   }catch(e){
-    document.getElementById('bmsg').textContent='⚠ '+e.message;
-    document.getElementById('bfill').style.background='#C41230';
-    document.getElementById('bfill').style.width='100%';
-    document.getElementById('bcount').textContent='!';
-    document.getElementById('bclbl').textContent='Loading failed — see below';
-    // Show retry button
-    const retryBtn=document.createElement('button');
-    retryBtn.textContent='↺ Retry';
-    retryBtn.style.cssText='margin-top:20px;padding:8px 24px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);border-radius:8px;color:#fff;font-family:var(--font-head);font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.05em';
-    retryBtn.onclick=()=>location.reload();
-    document.querySelector('.boot-inner').appendChild(retryBtn);
-    console.error('Boot failed:', e);
+    document.getElementById('bmsg').textContent='⚠ '+e.message; document.getElementById('bfill').style.background='#C41230'; document.getElementById('bfill').style.width='100%'; document.getElementById('bcount').textContent='!'; document.getElementById('bclbl').textContent='Loading failed — see below';
+    const retryBtn=document.createElement('button'); retryBtn.textContent='↺ Retry'; retryBtn.style.cssText='margin-top:20px;padding:8px 24px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);border-radius:8px;color:#fff;font-family:var(--font-head);font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.05em'; retryBtn.onclick=()=>location.reload(); document.querySelector('.boot-inner').appendChild(retryBtn); console.error('Boot failed:', e);
   }
 }
 boot();

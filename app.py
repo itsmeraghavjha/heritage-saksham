@@ -77,8 +77,10 @@ def _build_cache():
         yr_mth_fmr = ''  # unused — monthly_farmer removed from bootstrap
 
         # ── hpc_list ──────────────────────────────────────────────────────
+        # ── hpc_list ──────────────────────────────────────────────────────
         hpc_list = q(f"""
             SELECT hpc_plant_key, hpc_name, plant_name, plant_code, region, zone,
+                   hpr_name, mobile_no,  /* <--- ADD THIS LINE HERE */
                    ROUND(mtd,1)         AS mtd,
                    ROUND(lm,1)          AS lm,
                    ROUND(lmtd,1)        AS lmtd,
@@ -789,22 +791,56 @@ def hpc_detail():
         ORDER BY proc_date
     """, (key,)).fetchall()
 
-    yr_c  = "yr=(SELECT MAX(yr) FROM proc_monthly_farmer)"
-    mth_c = "mth=(SELECT MAX(mth) FROM proc_monthly_farmer WHERE yr=(SELECT MAX(yr) FROM proc_monthly_farmer))"
-    top   = conn.execute(f"""
+    # 1. Fetch the latest available year and month ONCE
+    latest_ym = conn.execute("""
+        SELECT yr, mth FROM proc_monthly_farmer 
+        ORDER BY yr DESC, mth DESC LIMIT 1
+    """).fetchone()
+    
+    max_yr = latest_ym['yr'] if latest_ym else 0
+    max_mth = latest_ym['mth'] if latest_ym else 0
+
+    # 2. Use those strict parameters in the query to utilize the new index
+    top = conn.execute("""
         SELECT farmer_name, farmer_code, delivery_days,
                ROUND(lpd,1) AS lpd, ROUND(avg_fat,3) AS avg_fat,
                ROUND(total_net_price,0) AS payout
         FROM proc_monthly_farmer
-        WHERE hpc_plant_key=? AND {yr_c} AND {mth_c}
+        WHERE hpc_plant_key=? AND yr=? AND mth=?
         ORDER BY total_net_price DESC LIMIT 10
-    """, (key,)).fetchall()
+    """, (key, max_yr, max_mth)).fetchall()
 
     conn.close()
     return jsonify({
         "daily":       [dict(r) for r in daily],
         "top_farmers": [dict(r) for r in top],
     })
+
+
+
+@app.route("/api/trend/plant")
+@login_required
+@analytics_required
+def plant_trend():
+    plant_code = request.args.get("plant_code", "")
+    if not plant_code:
+        return jsonify({"error": "plant_code required"}), 400
+
+    conn = get_db()
+    # Fetch just the 90 rows for this specific plant
+    daily = conn.execute("""
+        SELECT DATE(proc_date) AS proc_date,
+               SUM(qty_ltr)    AS qty_ltr,
+               SUM(farmer_count) AS farmers
+        FROM proc_daily_hpc
+        WHERE plant_code = ?
+          AND DATE(proc_date) >= DATE('now', '-90 days')
+        GROUP BY DATE(proc_date)
+        ORDER BY proc_date
+    """, (plant_code,)).fetchall()
+    conn.close()
+
+    return jsonify([dict(r) for r in daily])
 
 # ── ADMIN: USER CRUD ──────────────────────────────────────────────────────────
 
@@ -1021,6 +1057,60 @@ def data_status():
         },
     })
 
+
+# ── ADMIN: HPR CONTACT MANAGEMENT ─────────────────────────────────────────────
+
+@app.route("/api/admin/hpcs", methods=["GET"])
+@admin_required
+def list_hpcs():
+    conn = get_db()
+    # Ensure the persistent table exists
+    conn.execute("CREATE TABLE IF NOT EXISTS hpr_contacts (hpc_plant_key TEXT PRIMARY KEY, hpr_name TEXT, mobile_no TEXT)")
+    
+    snap_date = conn.execute("SELECT MAX(snapshot_date) FROM proc_period_snapshot").fetchone()
+    if not snap_date or not snap_date[0]:
+        conn.close()
+        return jsonify([])
+        
+    rows = conn.execute(f"""
+        SELECT hpc_plant_key, hpc_name, plant_name, region, zone, hpr_name, mobile_no
+        FROM proc_period_snapshot
+        WHERE snapshot_date='{snap_date[0]}'
+        ORDER BY zone, region, hpc_name
+    """).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+@app.route("/api/admin/hpcs/<path:hpc_key>", methods=["PUT"])
+@admin_required
+def update_hpc_contact(hpc_key):
+    d = request.get_json() or {}
+    hpr_name = d.get("hpr_name", "").strip()
+    mobile_no = d.get("mobile_no", "").strip()
+    
+    conn = get_db()
+    conn.execute("CREATE TABLE IF NOT EXISTS hpr_contacts (hpc_plant_key TEXT PRIMARY KEY, hpr_name TEXT, mobile_no TEXT)")
+    
+    # 1. Save permanently to our persistent table (so pipeline rebuilds don't erase it)
+    conn.execute(
+        "INSERT OR REPLACE INTO hpr_contacts (hpc_plant_key, hpr_name, mobile_no) VALUES (?, ?, ?)",
+        (hpc_key, hpr_name, mobile_no)
+    )
+    
+    # 2. Update the current live snapshot so it shows up instantly on the dashboard
+    conn.execute(
+        "UPDATE proc_period_snapshot SET hpr_name = ?, mobile_no = ? WHERE hpc_plant_key = ?",
+        (hpr_name, mobile_no, hpc_key)
+    )
+    conn.commit()
+    conn.close()
+    
+    # 3. Rebuild the RAM cache in the background so the main dashboard updates instantly
+    _build_cache_bg()
+    
+    return jsonify({"ok": True})
+
+
 # ── RUN ───────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -1031,4 +1121,4 @@ if __name__ == "__main__":
     _ensure_default_admin(conn)
     conn.close()
     _build_cache_bg()
-    app.run(debug=True, port=5001, threaded=True)
+    app.run(debug=True, port=5000, threaded=True)
