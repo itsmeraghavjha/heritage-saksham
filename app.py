@@ -18,6 +18,7 @@ import sqlite3, threading, uuid, json, time, logging, os
 from functools import wraps
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime, timedelta, date
 
 # ── LOGGING ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -78,23 +79,32 @@ def _build_cache():
 
         # ── hpc_list ──────────────────────────────────────────────────────
         # ── hpc_list ──────────────────────────────────────────────────────
+        # ── hpc_list (FIXED: Distinct Farmer Count) ───────────────────────
         hpc_list = q(f"""
-            SELECT hpc_plant_key, hpc_name, plant_name, plant_code, region, zone,
-                   hpr_name, mobile_no,  /* <--- ADD THIS LINE HERE */
-                   ROUND(mtd,1)         AS mtd,
-                   ROUND(lm,1)          AS lm,
-                   ROUND(lmtd,1)        AS lmtd,
-                   ROUND(lymtd,1)       AS lymtd,
-                   yoy_growth_pct,
-                   mom_growth_pct,
-                   ROUND(mtd_farmers,0) AS mtd_farmers,
-                   ROUND(lm_farmers,0)  AS lm_farmers,
-                   ROUND(mtd_avg_fat,3) AS mtd_avg_fat,
-                   ROUND(mtd_rate,2)    AS mtd_rate,
-                   ROUND(mtd_payout,0)  AS mtd_payout
-            FROM proc_period_snapshot
-            WHERE snapshot_date='{snap_date}'
-            ORDER BY mtd DESC
+            WITH true_farmers AS (
+                SELECT hpc_plant_key, COUNT(DISTINCT farmer_code) AS distinct_farmers
+                FROM proc_monthly_farmer
+                WHERE yr = (SELECT MAX(yr) FROM proc_monthly_farmer)
+                  AND mth = (SELECT MAX(mth) FROM proc_monthly_farmer WHERE yr = (SELECT MAX(yr) FROM proc_monthly_farmer))
+                GROUP BY hpc_plant_key
+            )
+            SELECT s.hpc_plant_key, s.hpc_name, s.plant_name, s.plant_code, s.region, s.zone,
+                   s.hpr_name, s.mobile_no,
+                   ROUND(s.mtd,1)         AS mtd,
+                   ROUND(s.lm,1)          AS lm,
+                   ROUND(s.lmtd,1)        AS lmtd,
+                   ROUND(s.lymtd,1)       AS lymtd,
+                   s.yoy_growth_pct,
+                   s.mom_growth_pct,
+                   COALESCE(tf.distinct_farmers, 0) AS mtd_farmers, /* <-- Replaces flawed snapshot data */
+                   ROUND(s.lm_farmers,0)  AS lm_farmers,
+                   ROUND(s.mtd_avg_fat,3) AS mtd_avg_fat,
+                   ROUND(s.mtd_rate,2)    AS mtd_rate,
+                   ROUND(s.mtd_payout,0)  AS mtd_payout
+            FROM proc_period_snapshot s
+            LEFT JOIN true_farmers tf ON s.hpc_plant_key = tf.hpc_plant_key
+            WHERE s.snapshot_date='{snap_date}'
+            ORDER BY s.mtd DESC
         """)
 
         # ── monthly_hpc ───────────────────────────────────────────────────
@@ -229,16 +239,58 @@ def _build_cache():
         lymtd = snap_row["lymtd"] or 0
         lmtd  = snap_row["lmtd"]  or 0
 
+        # ── zone & region summaries — must come before snapshot dict ──────
+        snap_d     = date.fromisoformat(snap_date)
+        day_num    = snap_d.day
+        ly_yr      = snap_d.year - 1
+        import calendar as _cal
+        ly_days    = min(day_num, _cal.monthrange(ly_yr, snap_d.month)[1])
+        curr_start = snap_d.replace(day=1).isoformat()
+        ly_start   = date(ly_yr, snap_d.month, 1).isoformat()
+        ly_end     = date(ly_yr, snap_d.month, ly_days).isoformat()
+
+        zone_summary = q(f"""
+            SELECT zone,
+                ROUND(SUM(CASE WHEN DATE(proc_date) BETWEEN '{curr_start}' AND '{snap_date}'
+                          THEN qty_ltr ELSE 0 END) / {day_num}.0, 0) AS mtd,
+                ROUND(SUM(CASE WHEN DATE(proc_date) BETWEEN '{ly_start}' AND '{ly_end}'
+                          THEN qty_ltr ELSE 0 END) / {ly_days}.0, 0) AS lymtd
+            FROM proc_daily_hpc WHERE zone IS NOT NULL
+            GROUP BY zone ORDER BY mtd DESC
+        """)
+
+        region_summary = q(f"""
+            SELECT region, zone,
+                ROUND(SUM(CASE WHEN DATE(proc_date) BETWEEN '{curr_start}' AND '{snap_date}'
+                          THEN qty_ltr ELSE 0 END) / {day_num}.0, 0) AS mtd,
+                ROUND(SUM(CASE WHEN DATE(proc_date) BETWEEN '{ly_start}' AND '{ly_end}'
+                          THEN qty_ltr ELSE 0 END) / {ly_days}.0, 0) AS lymtd
+            FROM proc_daily_hpc WHERE region IS NOT NULL
+            GROUP BY region, zone ORDER BY mtd DESC
+        """)
+
         snapshot = {
             "snapshot_date":  snap_date,
             "mtd":            round(mtd,   0),
             "lm":             round(snap_row["lm"] or 0, 0),
             "lmtd":           round(lmtd,  0),
             "lymtd":          round(lymtd, 0),
-            "yoy_pct":        round((mtd - lymtd) / lymtd * 100, 1) if lymtd else 0,
+            "yoy_pct": round((sum(z['mtd'] for z in zone_summary) - sum(z['lymtd'] for z in zone_summary)) / sum(z['lymtd'] for z in zone_summary) * 100, 1) if sum(z['lymtd'] for z in zone_summary) else 0,
             "mom_pct":        round((mtd - lmtd)  / lmtd  * 100, 1) if lmtd  else 0,
-            "total_farmers":  int(snap_row["total_farmers"]  or 0),
-            "lm_farmers":     int(snap_row["lm_farmers"]     or 0),
+            "total_farmers":  int(conn.execute(
+                "SELECT COUNT(DISTINCT farmer_code) FROM proc_monthly_farmer "
+                "WHERE yr=(SELECT MAX(yr) FROM proc_monthly_farmer) "
+                "AND mth=(SELECT MAX(mth) FROM proc_monthly_farmer WHERE yr=(SELECT MAX(yr) FROM proc_monthly_farmer))"
+            ).fetchone()[0] or 0),
+            "lm_farmers":     int(conn.execute("""
+                SELECT COUNT(DISTINCT farmer_code) FROM proc_monthly_farmer
+                WHERE (yr * 100 + mth) = (
+                    SELECT MAX(yr * 100 + mth) FROM proc_monthly_farmer
+                    WHERE (yr * 100 + mth) < (
+                        SELECT MAX(yr * 100 + mth) FROM proc_monthly_farmer
+                    )
+                )
+            """).fetchone()[0] or 0),
             "total_payout":   round(snap_row["total_payout"] or 0, 0),
             "total_hpcs":     snap_row["total_hpcs"],
             "dark_hpcs":      snap_row["dark_hpcs"],
@@ -370,6 +422,8 @@ def _build_cache():
                 "zone": r["zone"] or "", "region": r["region"] or "",
             })
 
+        
+
         conn.close()
 
         payload = {
@@ -383,6 +437,8 @@ def _build_cache():
             "farmer_rfm":        farmer_rfm,
             "insights":          insights,
             "filters":           filters,
+            "zone_summary":      zone_summary,
+            "region_summary":    region_summary,
         }
 
         payload_bytes = json.dumps(payload).encode("utf-8")
@@ -401,11 +457,17 @@ def _build_cache():
                 z_snap  = _recompute_snapshot(z_hpcs, z_mhpc, snapshot)
                 z_flt   = _build_scoped_filters(z_hpcs)
                 z_ins   = [i for i in insights if not i.get("zone") or i["zone"]==z]
+                z_zone_summary   = [r for r in zone_summary   if r['zone'] == z]
+                z_region_summary = [r for r in region_summary if r['zone'] == z]
+                z_zone_summary   = [r for r in zone_summary   if r['zone'] == z]
+                z_region_summary = [r for r in region_summary if r['zone'] == z]
                 scoped[z] = json.dumps({
                     "snapshot": z_snap, "hpc_list": z_hpcs, "monthly_hpc": z_mhpc,
                     "monthly_farmer": [], "daily": z_daily,
                     "quality_incidents": z_qi, "farmer_health": z_fh,
                     "farmer_rfm": z_rfm, "insights": z_ins, "filters": z_flt,
+                    "zone_summary":   z_zone_summary,
+                    "region_summary": z_region_summary,
                 }).encode("utf-8")
             except Exception as ez:
                 log.warning(f"Scoped cache failed for zone {z}: {ez}")
@@ -551,7 +613,7 @@ def _recompute_snapshot(hpcs, mhpc, base_snap):
         "lm":             round(lm,    0),
         "lmtd":           round(lmtd,  0),
         "lymtd":          round(lymtd, 0),
-        "yoy_pct":        round((mtd - lymtd) / lymtd * 100, 1) if lymtd else 0,
+        "yoy_pct": round((mtd - lymtd) / lymtd * 100, 1) if lymtd else 0,
         "mom_pct":        round((mtd - lmtd)  / lmtd  * 100, 1) if lmtd  else 0,
         "total_farmers":  int(sum(h.get("mtd_farmers", 0) or 0 for h in hpcs)),
         "lm_farmers":     int(sum(h.get("lm_farmers",  0) or 0 for h in hpcs)),
@@ -740,6 +802,8 @@ def bootstrap():
         "farmer_rfm":        farmer_rfm,
         "insights":          insights,
         "filters":           _build_scoped_filters(hpc_list),
+        "zone_summary":      [r for r in data.get("zone_summary",   []) if not my_zone   or r["zone"]   == my_zone],
+        "region_summary":    [r for r in data.get("region_summary", []) if not my_region or r["region"] == my_region],
         "user": {
             "role":         role,
             "full_name":    user["full_name"],

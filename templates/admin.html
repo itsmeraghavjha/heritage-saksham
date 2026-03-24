@@ -630,7 +630,7 @@ async function loadSystem() {
 
 let syncTimer = null;
 async function triggerSync() {
-  if(!confirm('Start a full database sync from Parquet files? This may take a minute.')) return;
+  if(!confirm('Fetch latest cycle data from SQL Server and rebuild analytics? This may take a few minutes.')) return;
   const btn = document.getElementById('btnSync'), barWrap = document.getElementById('syncProgressWrap'), bar = document.getElementById('syncBar'), log = document.getElementById('syncLog');
   
   btn.disabled = true; btn.textContent = 'Pipeline Running...';

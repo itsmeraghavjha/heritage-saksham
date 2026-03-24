@@ -782,16 +782,24 @@ function renderOverview(){
   loadTrendChart();
   // ───────────────────────────────────────────────────────────────
 
-  const bz=gby(hpcs,'zone');
-  const zones=Object.entries(bz).filter(([z])=>z).map(([z,rows])=>({z,mtd:sF(rows,'mtd'),ly:sF(rows,'lymtd')})).sort((a,b)=>b.mtd-a.mtd);
-  dc('cZone');
-  charts['cZone']=new Chart(document.getElementById('cZone').getContext('2d'),{ type:'bar',data:{labels:zones.map(z=>z.z),datasets:[{label:'This Year MTD', data:zones.map(z=>z.mtd),backgroundColor:CL.brand,borderRadius:5},{label:'Last Year', data:zones.map(z=>z.ly), backgroundColor:'rgba(26,122,60,.15)',borderRadius:5,borderWidth:1,borderColor:CL.brand}]}, options:{responsive:true,maintainAspectRatio:false, plugins:{legend:{display:true,position:'top'}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.04)'}}}} });
+  const zones=(D.zone_summary||[]);
+dc('cZone');
+charts['cZone']=new Chart(document.getElementById('cZone').getContext('2d'),{ type:'bar',data:{labels:zones.map(z=>z.zone),datasets:[{label:'This Year MTD', data:zones.map(z=>z.mtd),backgroundColor:CL.brand,borderRadius:5},{label:'Last Year', data:zones.map(z=>z.lymtd), backgroundColor:'rgba(26,122,60,.15)',borderRadius:5,borderWidth:1,borderColor:CL.brand}]}, options:{responsive:true,maintainAspectRatio:false, plugins:{legend:{display:true,position:'top'}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.04)'}}}} });
+
+
 
   const brm=gby(hpcs,'region'), mbrm=gby(mhpc,'region');
-  let regs=Object.entries(brm).filter(([r])=>r).map(([region,rows])=>{
-    const mr=mbrm[region]||[],mtd=sF(rows,'mtd'),ly=sF(rows,'lymtd'),lm=sF(rows,'lmtd');
+// Build a lookup from region_summary for correct historical LYMTD
+// (includes closed HPCs, unlike per-HPC lymtd sum from snapshot)
+const rsLookup={};
+(D.region_summary||[]).forEach(r=>rsLookup[r.region]=r);
+
+let regs=Object.entries(brm).filter(([r])=>r).map(([region,rows])=>{
+    const mr=mbrm[region]||[],mtd=sF(rows,'mtd'),lm=sF(rows,'lmtd');
+    const ly=(rsLookup[region]||{}).lymtd||0;  // correct LYMTD from direct DB query
     return{region,zone:rows[0]?.zone||'',mtd,yoy:ly?(mtd-ly)/ly:null,mom:lm?(mtd-lm)/lm:null,farmers:sF(rows,'mtd_farmers'),dark:rows.filter(r=>!r.mtd||r.mtd==0).length,fat:wv(rows.filter(r=>r.mtd_avg_fat>0),'mtd_avg_fat','mtd'),pay:sF(mr,'total_net_price')};
-  }).sort((a,b)=>b.mtd-a.mtd);
+}).sort((a,b)=>b.mtd-a.mtd);
+
 
   regs = filterRows(regs, 'srchRegion');
   regs = sortRowsByCol(regs, r => [r.region, r.zone, r.mtd, (r.mom||0)*100, (r.yoy||0)*100, r.farmers, r.dark, r.fat, r.pay], 'tbRegion');

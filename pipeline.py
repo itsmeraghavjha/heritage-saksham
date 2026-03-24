@@ -30,8 +30,7 @@ import pyodbc
 PARQUET_DIR  = Path(r"C:\AnalyticsPortal\parquet")
 SQLITE_PATH  = r"C:\AnalyticsPortal\portal.db"
 TMP_DIR      = Path(r"C:\AnalyticsPortal\tmp")
-LOG_PATH     = r"C:\AnalyticsPortal\pipeline.log"
-
+LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pipeline.log")
 SQL_CONN_STR = (
     "Driver={ODBC Driver 17 for SQL Server};"
     "Server=10.0.1.71,4000;"
@@ -48,7 +47,7 @@ RETENTION = {
     "proc_quality_incidents": 365,   # 1 year (23M rows — aggressively pruned)
 }
 SNAPSHOT_KEEP    = 10   # keep last N snapshots
-PARQUET_KEEP_YRS = 2    # delete parquet files older than this many years
+PARQUET_KEEP_DAYS = 45    # delete parquet files older than this many years
 
 # ── LOGGING ───────────────────────────────────────────────────────────────────
 os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
@@ -119,15 +118,15 @@ SELECT
     CAST([Vendor] AS VARCHAR(20))                                         AS farmer_code,
     [Farmer Name]                                                         AS farmer_name,
     [Milk Type]                                                           AS milk_type,
-    CAST([Qty(Ltr)]        AS FLOAT)                                      AS qty_ltr,
-    CAST([Qty(Kg)]         AS FLOAT)                                      AS qty_kg,
-    CAST([Fat]             AS FLOAT)                                      AS fat,
+    CAST([QTY(LTR)]        AS FLOAT)                                      AS qty_ltr,
+    CAST([QTY(KG)]         AS FLOAT)                                      AS qty_kg,
+    CAST([FAT]             AS FLOAT)                                      AS fat,
     CAST([SNF]             AS FLOAT)                                      AS snf,
-    CAST([Fat Kg]          AS FLOAT)                                      AS fat_kg,
-    CAST([SNF Kg]          AS FLOAT)                                      AS snf_kg,
+    CAST([Fat_kg]          AS FLOAT)                                      AS fat_kg,
+    CAST([Snf_kg]          AS FLOAT)                                      AS snf_kg,
     CAST([Base Price]      AS FLOAT)                                      AS base_price,
-    CAST([MCC Incentive]   AS FLOAT)                                      AS mcc_incentive,
-    CAST([Qty Incentive]   AS FLOAT)                                      AS qty_incentive,
+    CAST([Mcc Incentive]   AS FLOAT)                                      AS mcc_incentive,
+    CAST([QTY Incentive]   AS FLOAT)                                      AS qty_incentive,
     CAST([Bonus]           AS FLOAT)                                      AS bonus,
     CAST([Dumping_Amt(QD)] AS FLOAT)                                      AS dumping_amt,
     CAST([Net Price]       AS FLOAT)                                      AS net_price
@@ -149,51 +148,57 @@ def _fetch_one_day(target_date, sql_conn):
 
 def fetch_new_data(progress_cb=None):
     """
-    Fetch all dates from (latest parquet + 1) through yesterday.
-    Skips dates that already have a parquet file.
-    Returns list of (date, row_count) for newly fetched dates.
+    Fetches any dates missing from parquet store.
+    Queries SQL Server for available dates in last FETCH_LOOKBACK_DAYS,
+    then fetches whichever don't have a parquet file yet.
+    Works correctly for backdated cycle data.
     """
     PARQUET_DIR.mkdir(parents=True, exist_ok=True)
-    yesterday = date.today() - timedelta(days=1)
-    latest    = get_latest_parquet_date()
 
-    if latest is None:
-        raise RuntimeError(
-            "No parquet files found. Run: python pipeline_v2.py --backfill-from 2024-01"
-        )
-
-    start = latest + timedelta(days=1)
-    if start > yesterday:
-        log.info(f"Already up to date (latest parquet: {latest})")
-        if progress_cb: progress_cb("fetch", 1, 1, f"Already up to date — latest: {latest}")
-        return []
-
-    dates = [start + timedelta(days=i) for i in range((yesterday - start).days + 1)]
-    log.info(f"Fetching {len(dates)} days: {start} -> {yesterday}")
-
-    if progress_cb: progress_cb("fetch", 0, len(dates), f"Connecting to SQL Server...")
+    if progress_cb: progress_cb("fetch", 0, 1, "Connecting to SQL Server...")
     try:
         sql_conn = pyodbc.connect(SQL_CONN_STR, timeout=30)
     except Exception as e:
         log.error(f"SQL Server connection failed: {e}")
         raise
 
-    results = []
     try:
-        for i, d in enumerate(dates):
+        # Ask SQL Server: what dates do you actually have in the last 6 months?
+        available = pd.read_sql("""
+            SELECT DISTINCT CAST([MCS Date] AS DATE) AS proc_date
+            FROM [HeritageIT].[P&I].[fact_procurement_transactions]
+            WHERE CAST([MCS Date] AS DATE) >= DATEADD(MONTH, -15, CAST(GETDATE() AS DATE))
+            ORDER BY proc_date
+        """, sql_conn)
+
+        all_dates = pd.to_datetime(available['proc_date']).dt.date.tolist()
+        
+        # Only fetch dates we don't have a parquet for
+        missing = [
+            d for d in all_dates
+            if not (PARQUET_DIR / f"proc_{d}.parquet").exists()
+        ]
+
+        if not missing:
+            log.info("Already up to date — no missing dates found")
+            if progress_cb: progress_cb("fetch", 1, 1, "Already up to date")
+            return []
+
+        log.info(f"Found {len(missing)} missing dates to fetch")
+
+        results = []
+        for i, d in enumerate(missing):
             if progress_cb:
-                progress_cb("fetch", i + 1, len(dates), f"Fetching {d}...")
+                progress_cb("fetch", i + 1, len(missing), f"Fetching {d}...")
             rows = _fetch_one_day(d, sql_conn)
             if rows > 0:
                 log.info(f"  {d}: {rows:,} rows")
                 results.append((d, rows))
+
+        return results
+
     finally:
         sql_conn.close()
-
-    log.info(f"Fetch done — {len(results)} new files, "
-             f"{sum(r for _, r in results):,} rows")
-    return results
-
 # ── STEP 2: PURGE OLD PARQUETS ────────────────────────────────────────────────
 
 def purge_old_parquets(reference_date=None, progress_cb=None):
@@ -202,11 +207,9 @@ def purge_old_parquets(reference_date=None, progress_cb=None):
     Called after every fetch so old files disappear automatically.
     """
     if reference_date is None:
-        reference_date = get_latest_parquet_date()
-    if reference_date is None:
-        return 0
-
-    cutoff  = reference_date.replace(year=reference_date.year - PARQUET_KEEP_YRS)
+        reference_date = date.today()
+    
+    cutoff = reference_date - timedelta(days=PARQUET_KEEP_DAYS)
     deleted = 0
     for f in sorted(PARQUET_DIR.glob("proc_*.parquet")):
         try:
@@ -431,7 +434,10 @@ def build_month(yr, mth, conn=None, duck=None, progress_cb=None):
         return True
 
     except Exception as e:
-        log.error(f"  build_month {ym_str} FAILED: {e}")
+        import traceback
+        log.error(f"  build_month {ym_str} FAILED: {e}", exc_info=True)
+        print(f"\n>>> BUILD MONTH ERROR: {e}")
+        traceback.print_exc()
         conn.rollback()
         raise
     finally:
