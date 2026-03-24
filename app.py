@@ -1175,6 +1175,184 @@ def update_hpc_contact(hpc_key):
     return jsonify({"ok": True})
 
 
+
+
+# ── SCORECARD HISTORY — add this route to app.py ─────────────────────────────
+# Returns last-month and last-year-same-month aggregates for the scorecard.
+# Respects user role scope AND optional ?zone= / ?region= / ?plant_code= params.
+
+# ── SCORECARD HISTORY — updated with computed attrition ──────────────────────
+# Replace the existing /api/scorecard/history route in app.py with this.
+
+# ── SCORECARD HISTORY — v3, fixed LY attrition ───────────────────────────────
+# Replace the existing /api/scorecard/history route in app.py with this.
+#
+# Attrition definition:
+#   LM attrition  = backward: farmers in (lm-1) who disappeared in (lm)
+#   LY attrition  = forward:  farmers in (ly) who disappeared in (ly+1)
+#
+# "Forward" is used for LY because data 13 months back often doesn't exist,
+# but LY+1 (11 months ago) almost always does.
+
+@app.route("/api/scorecard/history")
+@login_required
+@analytics_required
+def scorecard_history():
+    import calendar as _cal
+ 
+    f    = gf()
+    conn = get_db()
+ 
+    snap_date = conn.execute(
+        "SELECT MAX(snapshot_date) FROM proc_period_snapshot"
+    ).fetchone()[0]
+    if not snap_date:
+        conn.close()
+        return jsonify({"lm": {}, "ly": {}})
+ 
+    cur = conn.execute(
+        "SELECT yr, mth FROM proc_monthly_hpc ORDER BY yr DESC, mth DESC LIMIT 1"
+    ).fetchone()
+    if not cur:
+        conn.close()
+        return jsonify({"lm": {}, "ly": {}})
+ 
+    curr_yr, curr_mth = cur["yr"], cur["mth"]
+ 
+    # Last month
+    lm_yr  = curr_yr  if curr_mth > 1 else curr_yr - 1
+    lm_mth = curr_mth - 1 if curr_mth > 1 else 12
+ 
+    # Month before last month (for LM attrition: lm-1 → lm)
+    lm1_yr  = lm_yr  if lm_mth > 1 else lm_yr - 1
+    lm1_mth = lm_mth - 1 if lm_mth > 1 else 12
+ 
+    # Last year same month
+    ly_yr, ly_mth = curr_yr - 1, curr_mth
+ 
+    # Month before LY same month (for LY attrition: ly_mth-1 → ly_mth)
+    ly1_yr  = ly_yr  if ly_mth > 1 else ly_yr - 1
+    ly1_mth = ly_mth - 1 if ly_mth > 1 else 12
+ 
+    # ── scope WHERE fragment ──────────────────────────────────────────────────
+    scope_clauses, scope_params = [], []
+    if f.get("zone"):
+        scope_clauses.append("s.zone = ?")
+        scope_params.append(f["zone"])
+    if f.get("region"):
+        scope_clauses.append("s.region = ?")
+        scope_params.append(f["region"])
+    if f.get("plant_code"):
+        scope_clauses.append("CAST(s.plant_code AS TEXT) = ?")
+        scope_params.append(str(f["plant_code"]))
+    scope_and = ("AND " + " AND ".join(scope_clauses)) if scope_clauses else ""
+ 
+    # ── helpers ───────────────────────────────────────────────────────────────
+    def monthly_hpc_agg(yr, mth):
+        rows = conn.execute(f"""
+            SELECT mh.total_qty_ltr,
+                   mh.avg_fat, mh.avg_snf,
+                   mh.avg_cost_per_fat_kg,
+                   mh.total_net_price
+            FROM proc_monthly_hpc mh
+            JOIN proc_period_snapshot s
+              ON mh.hpc_plant_key = s.hpc_plant_key
+             AND s.snapshot_date  = ?
+            WHERE mh.yr = ? AND mh.mth = ?
+            {scope_and}
+        """, [snap_date, yr, mth] + scope_params).fetchall()
+        if not rows:
+            return {}
+        total_ltr = sum(r["total_qty_ltr"] or 0 for r in rows)
+        if not total_ltr:
+            return {}
+        def wavg(field):
+            return round(sum((r[field] or 0) * (r["total_qty_ltr"] or 0) for r in rows) / total_ltr, 3)
+        total_fat_kg = sum(
+            (r["total_qty_ltr"] or 0) * (r["avg_fat"] or 0) / 100 * 1.032
+            for r in rows
+        )
+        return {
+            "total_ltr"      : total_ltr,
+            "fat"            : wavg("avg_fat"),
+            "snf"            : wavg("avg_snf"),
+            "cost_per_fat_kg": round(
+                sum(r["total_net_price"] or 0 for r in rows) / total_fat_kg, 2
+            ) if total_fat_kg > 0 else None,
+        }
+ 
+    def farmer_counts(yr, mth):
+        row = conn.execute(f"""
+            SELECT COUNT(DISTINCT mf.farmer_code)   AS farmers,
+                   COUNT(DISTINCT mf.hpc_plant_key) AS hpcs
+            FROM proc_monthly_farmer mf
+            JOIN proc_period_snapshot s
+              ON mf.hpc_plant_key = s.hpc_plant_key
+             AND s.snapshot_date  = ?
+            WHERE mf.yr = ? AND mf.mth = ?
+            {scope_and}
+        """, [snap_date, yr, mth] + scope_params).fetchone()
+        return (row["farmers"] or 0, row["hpcs"] or 1) if row else (0, 1)
+ 
+    def farmer_set(yr, mth):
+        rows = conn.execute(f"""
+            SELECT DISTINCT mf.farmer_code
+            FROM proc_monthly_farmer mf
+            JOIN proc_period_snapshot s
+              ON mf.hpc_plant_key = s.hpc_plant_key
+             AND s.snapshot_date  = ?
+            WHERE mf.yr = ? AND mf.mth = ?
+            {scope_and}
+        """, [snap_date, yr, mth] + scope_params).fetchall()
+        return set(r["farmer_code"] for r in rows)
+ 
+    def attrition(base_yr, base_mth, next_yr, next_mth):
+        """% of base-period farmers who did NOT appear in next period."""
+        base = farmer_set(base_yr, base_mth)
+        if not base:
+            return None
+        nxt     = farmer_set(next_yr, next_mth)
+        churned = len(base - nxt)
+        return round(churned / len(base) * 100, 1)
+ 
+    # ── build aggregates ──────────────────────────────────────────────────────
+    lm_agg              = monthly_hpc_agg(lm_yr, lm_mth)
+    lm_days             = _cal.monthrange(lm_yr, lm_mth)[1]
+    lm_farmers, lm_hpcs = farmer_counts(lm_yr, lm_mth)
+    lm_lpd              = round(lm_agg.get("total_ltr", 0) / lm_days, 1) if lm_agg else 0
+    # LM attrition: farmers in (lm-1) who churned by lm  ← same formula as current month
+    lm_attrition        = attrition(lm1_yr, lm1_mth, lm_yr, lm_mth)
+ 
+    ly_agg              = monthly_hpc_agg(ly_yr, ly_mth)
+    ly_days             = _cal.monthrange(ly_yr, ly_mth)[1]
+    ly_farmers, ly_hpcs = farmer_counts(ly_yr, ly_mth)
+    ly_lpd              = round(ly_agg.get("total_ltr", 0) / ly_days, 1) if ly_agg else 0
+    # LY attrition: farmers in (ly_mth-1) who churned by ly_mth ← same formula, 1 yr back
+    ly_attrition        = attrition(ly1_yr, ly1_mth, ly_yr, ly_mth)
+ 
+    conn.close()
+ 
+    return jsonify({
+        "lm": {
+            "farmer_productivity": round(lm_lpd / lm_farmers, 2) if lm_farmers > 0 and lm_lpd else None,
+            "hpc_productivity"   : round(lm_lpd / lm_hpcs,   2) if lm_hpcs   > 0 else None,
+            "farmers_per_hpc"    : round(lm_farmers / lm_hpcs, 1) if lm_hpcs > 0 else None,
+            "fat"                : lm_agg.get("fat"),
+            "snf"                : lm_agg.get("snf"),
+            "cost_per_fat_kg"    : lm_agg.get("cost_per_fat_kg"),
+            "attrition"          : lm_attrition,
+        },
+        "ly": {
+            "farmer_productivity": round(ly_lpd / ly_farmers, 2) if ly_farmers > 0 and ly_lpd else None,
+            "hpc_productivity"   : round(ly_lpd / ly_hpcs,   2) if ly_hpcs   > 0 else None,
+            "farmers_per_hpc"    : round(ly_farmers / ly_hpcs, 1) if ly_hpcs > 0 else None,
+            "fat"                : ly_agg.get("fat"),
+            "snf"                : ly_agg.get("snf"),
+            "cost_per_fat_kg"    : ly_agg.get("cost_per_fat_kg"),
+            "attrition"          : ly_attrition,
+        },
+    })
+
 # ── RUN ───────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":

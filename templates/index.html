@@ -248,6 +248,36 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
 
 @media(max-width:1100px) { .kpi-row { grid-template-columns: repeat(3,1fr); } .g2a,.g2 { grid-template-columns: 1fr; } .tl-row { grid-template-columns: 1fr; } }
 @media(max-width:650px)  { .kpi-row { grid-template-columns: 1fr 1fr; } .panel { width: 100%; } main,header,.filter-bar,.tabs-wrap { padding-left: 16px; padding-right: 16px; } }
+
+/* ═══════════════════════════════════════════════════════════════
+   SCORECARD SPECIFIC STYLES - ADD THIS SECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+.sc-hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 32px; }
+.sc-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+.sc-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--sc-accent, var(--border)); }
+.sc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.sc-metric-name { font-family: var(--font-head); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.sc-status { font-size: 20px; }
+.sc-current { font-family: var(--font-head); font-size: 36px; font-weight: 800; color: var(--ink); line-height: 1; margin-bottom: 12px; }
+.sc-comparison { display: flex; gap: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+.sc-comp-item { flex: 1; }
+.sc-comp-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .05em; }
+.sc-comp-value { font-size: 14px; font-weight: 700; color: var(--ink2); }
+.sc-variance { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; margin-top: 4px; }
+.sc-var-good { background: var(--green-lt); color: var(--green); }
+.sc-var-bad { background: var(--red-lt); color: var(--red); }
+.sc-var-neutral { background: var(--surface2); color: var(--muted); }
+.bench-table { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
+.bench-table table { width: 100%; border-collapse: collapse; }
+.bench-table th { background: var(--surface2); padding: 14px 20px; text-align: left; font-family: var(--font-head); font-size: 10.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid var(--border); }
+.bench-table td { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: var(--ink2); }
+.bench-table tr:last-child td { border-bottom: none; }
+.bench-table tr:hover td { background: var(--surface2); }
+.bench-table .metric-cell { font-weight: 600; color: var(--ink); }
+.bench-table .highlight-cell { background: var(--brand-lt); font-weight: 700; color: var(--brand); }
+
+
 </style>
 </head>
 <body>
@@ -311,7 +341,8 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
 
 <div class="tabs-wrap">
   <div class="tabs">
-    <button class="tab on" onclick="switchTab('overview')"><span class="tab-icon">📊</span> Overview</button>
+    <button class="tab on" onclick="switchTab('scorecard')"><span class="tab-icon">🎯</span> Performance Scorecard</button>
+    <button class="tab" onclick="switchTab('overview')"><span class="tab-icon">📊</span> Overview</button>
     <button class="tab" onclick="switchTab('hpc')"><span class="tab-icon">🏭</span> HPC Drilldown</button>
     <button class="tab" onclick="switchTab('farmers')"><span class="tab-icon">👨‍🌾</span> Farmer Analytics</button>
     <button class="tab" id="tabQuality" onclick="switchTab('quality')"><span class="tab-icon">🧪</span> Quality &amp; Cost</button>
@@ -320,7 +351,58 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
 
 <main>
 
-<div class="page on" id="pg-overview">
+<!-- ═══════════════════════════════════════════════════════════════
+     PERFORMANCE SCORECARD PAGE - ADD THIS ENTIRE SECTION
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="page on" id="pg-scorecard">
+  <div class="sc-hero" id="scHero">
+    <div class="loading"><div class="spin"></div> Loading metrics...</div>
+  </div>
+  
+  <div class="g2" style="margin-bottom: 24px;">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="c-title">Performance vs Benchmarks</div>
+          <div class="c-sub">Current status against key targets</div>
+        </div>
+      </div>
+      <div class="c-body"><div class="ch h240"><canvas id="cScoreChart"></canvas></div></div>
+    </div>
+    
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="c-title">Metric Heatmap</div>
+          <div class="c-sub">Overall performance health</div>
+        </div>
+      </div>
+      <div class="c-body"><div class="ch h240"><canvas id="cHeatmap"></canvas></div></div>
+    </div>
+  </div>
+  
+  <div class="bench-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>Current</th>
+          <th>Target</th>
+          <th>Variance</th>
+          <th>Company Avg</th>
+          <th>Zone Avg</th>
+          <th>Last Month</th>
+          <th>Last Year</th>
+        </tr>
+      </thead>
+      <tbody id="benchTable">
+        <tr><td colspan="8" style="text-align:center;padding:28px;color:var(--muted)">Loading benchmark data...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="page" id="pg-overview">
   <div class="kpi-row" id="ovKpis"><div class="loading"><div class="spin"></div></div></div>
   <div class="g2a">
     <div class="card">
@@ -696,8 +778,11 @@ function switchTab(n){
   if(D) renderTab(n);
   document.getElementById('scopeDrop').classList.remove('open');
 }
+
+
 function renderTab(n){
-  if(n==='overview') renderOverview();
+  if(n==='scorecard') renderScorecard();
+  else if(n==='overview') renderOverview();
   else if(n==='hpc') renderHpc();
   else if(n==='farmers') renderFarmers();
   else if(n==='quality') renderQuality();
@@ -1202,6 +1287,307 @@ function exportCSV(tableId, filename, renderFnName, stateKey) {
     window[renderFnName]();
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   SCORECARD RENDERING LOGIC - ADD THIS ENTIRE FUNCTION
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════
+   UPDATED renderScorecard — paste this over the existing function
+   in your index.html
+
+   Changes:
+   1. Last Month & Last Year columns now show real data
+      (derived from lm / lmtd / lymtd already in the snapshot)
+   2. Comparison columns are context-aware:
+        All India  → no Company Avg column (current IS company)
+        Zone       → Company Avg
+        Region     → Zone Avg + Company Avg
+        Plant      → Region Avg + Zone Avg + Company Avg
+   3. Table <thead> is rebuilt dynamically to match the active columns
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════
+   UPDATED renderScorecard — replaces the full function in index.html
+   
+   Now async: fetches /api/scorecard/history to fill LM & LY cells.
+   Passes current filter (zone/region/plant_code) as query params so
+   the backend scopes the historical aggregates correctly.
+   ═══════════════════════════════════════════════════════════════ */
+
+async function renderScorecard() {
+  const hpcs = filt(D.hpc_list);
+  const mhpc = filt(D.monthly_hpc);
+  const fh   = filt(D.farmer_health || []);
+
+  /* ── filter level ── */
+  const hasPlant  = !!gF.plant_code;
+  const hasRegion = !!gF.region;
+  const hasZone   = !!gF.zone;
+  const filterLevel = hasPlant ? 'plant' : hasRegion ? 'region' : hasZone ? 'zone' : 'all';
+
+  /* ── helper: compute the 7 KPIs from any slice ── */
+  function calcMetrics(hList, mList, fList) {
+    const totL = sF(hList, 'mtd');
+    const totF = sF(hList, 'mtd_farmers');
+    const totH = hList.length || 1;
+    return {
+      farmerProductivity: totF > 0 ? totL / totF : 0,
+      hpcProductivity   : totL / totH,
+      farmerPerHPC      : totF / totH,
+      fat      : wv(hList.filter(h => (h.mtd_avg_fat || 0) > 0), 'mtd_avg_fat', 'mtd') || 0,
+      snf      : wv(mList, 'avg_snf', 'total_qty_ltr') || 0,
+      costPerKg: aF(mList, 'avg_cost_per_fat_kg') || 0,
+      attrition: fList.length > 0 ? (aF(fList, 'attrition_pct') || 0) : 0,
+    };
+  }
+
+  /* ── current view ── */
+  const current = calcMetrics(hpcs, mhpc, fh);
+
+  /* ── comparison averages — only compute what's needed ── */
+  let companyAvg = null, zoneAvg = null, regionAvg = null;
+
+  if (filterLevel !== 'all') {
+    companyAvg = calcMetrics(D.hpc_list, D.monthly_hpc, D.farmer_health || []);
+  }
+  if (filterLevel === 'region' || filterLevel === 'plant') {
+    const zH = D.hpc_list.filter(h => h.zone === gF.zone);
+    const zM = D.monthly_hpc.filter(h => h.zone === gF.zone);
+    const zF = (D.farmer_health || []).filter(h => h.zone === gF.zone);
+    zoneAvg = calcMetrics(zH, zM, zF);
+  }
+  if (filterLevel === 'plant') {
+    const rH = D.hpc_list.filter(h => h.region === gF.region);
+    const rM = D.monthly_hpc.filter(h => h.region === gF.region);
+    const rF = (D.farmer_health || []).filter(h => h.region === gF.region);
+    regionAvg = calcMetrics(rH, rM, rF);
+  }
+
+  /* ── targets ── */
+  const TARGETS = {
+    farmerProductivity: 12,
+    hpcProductivity   : 250,
+    farmerPerHPC      : 25,
+    fat               : 3.5,
+    snf               : 8.0,
+    costPerKg         : 900,
+    attrition         : 8,
+  };
+
+  /* ── metric definitions ── */
+  const METRIC_DEFS = [
+    { key: 'farmerProductivity', name: 'Farmer Productivity', unit: 'L/Farmer', icon: '👨‍🌾', higherIsBetter: true  },
+    { key: 'hpcProductivity',    name: 'HPC Productivity',    unit: 'L/HPC',    icon: '🏭',  higherIsBetter: true  },
+    { key: 'farmerPerHPC',       name: 'Farmers per HPC',     unit: 'Count',    icon: '📊',  higherIsBetter: true  },
+    { key: 'fat',                name: 'Average FAT',          unit: '%',        icon: '🧪',  higherIsBetter: true  },
+    { key: 'snf',                name: 'Average SNF',          unit: '%',        icon: '⚗️',  higherIsBetter: true  },
+    { key: 'costPerKg',          name: 'Cost per Fat Kg',      unit: '₹/Kg',    icon: '💰',  higherIsBetter: false },
+    { key: 'attrition',          name: 'Farmer Attrition',     unit: '%',        icon: '📉',  higherIsBetter: false },
+  ];
+
+  /* ── mapping: metric key → history API field name ── */
+  const HIST_KEY = {
+    farmerProductivity: 'farmer_productivity',
+    hpcProductivity   : 'hpc_productivity',
+    farmerPerHPC      : 'farmers_per_hpc',
+    fat               : 'fat',
+    snf               : 'snf',
+    costPerKg         : 'cost_per_fat_kg',
+    attrition         : 'attrition',
+  };
+
+  /* ── show column flags ── */
+  const showCompany = filterLevel !== 'all';
+  const showZone    = filterLevel === 'region' || filterLevel === 'plant';
+  const showRegion  = filterLevel === 'plant';
+
+  /* ── show "loading" state immediately while we fetch history ── */
+  _renderScorecardUI(METRIC_DEFS, TARGETS, current, companyAvg, zoneAvg, regionAvg,
+                     null, null, showCompany, showZone, showRegion, true);
+
+  /* ── fetch historical data from backend ── */
+  let lmHist = {}, lyHist = {};
+  try {
+    const params = new URLSearchParams();
+    if (gF.zone)       params.append('zone',       gF.zone);
+    if (gF.region)     params.append('region',     gF.region);
+    if (gF.plant_code) params.append('plant_code', gF.plant_code);
+    const res = await fetch('/api/scorecard/history?' + params.toString());
+    if (res.ok) {
+      const data = await res.json();
+      lmHist = data.lm || {};
+      lyHist = data.ly || {};
+    }
+  } catch (e) {
+    console.warn('Scorecard history fetch failed:', e);
+  }
+
+  /* ── re-render with real LM/LY data ── */
+  _renderScorecardUI(METRIC_DEFS, TARGETS, current, companyAvg, zoneAvg, regionAvg,
+                     lmHist, lyHist, showCompany, showZone, showRegion, false);
+
+  /* ── helper map: build metric list with all values ── */
+  function buildMetrics(lm, ly) {
+    return METRIC_DEFS.map(m => ({
+      ...m,
+      current   : current[m.key],
+      target    : TARGETS[m.key],
+      companyAvg: companyAvg  ? companyAvg[m.key]  : null,
+      zoneAvg   : zoneAvg     ? zoneAvg[m.key]     : null,
+      regionAvg : regionAvg   ? regionAvg[m.key]   : null,
+      lm        : lm  ? (lm[HIST_KEY[m.key]]  ?? null) : null,
+      ly        : ly  ? (ly[HIST_KEY[m.key]]  ?? null) : null,
+    }));
+  }
+
+  /* re-called once history arrives to update charts too */
+  function _renderScorecardUI(defs, tgts, curr, co, zo, re, lm, ly, sC, sZ, sR, loading) {
+    const metrics = buildMetrics(lm, ly);
+
+    /* hero cards */
+    document.getElementById('scHero').innerHTML = metrics.map(m => {
+      const variance = m.current - m.target;
+      const isGood   = m.higherIsBetter ? variance >= 0 : variance <= 0;
+      const accent   = isGood ? CL.green : CL.red;
+
+      let compItems = `
+        <div class="sc-comp-item">
+          <div class="sc-comp-label">Target</div>
+          <div class="sc-comp-value">${F.f1(m.target)} ${m.unit}</div>
+          <div class="sc-variance ${isGood ? 'sc-var-good' : 'sc-var-bad'}">${variance >= 0 ? '+' : ''}${F.f1(variance)}</div>
+        </div>`;
+      if (sR && m.regionAvg != null)
+        compItems += `<div class="sc-comp-item"><div class="sc-comp-label">Region</div><div class="sc-comp-value">${F.f1(m.regionAvg)}</div></div>`;
+      if (sZ && m.zoneAvg != null)
+        compItems += `<div class="sc-comp-item"><div class="sc-comp-label">Zone</div><div class="sc-comp-value">${F.f1(m.zoneAvg)}</div></div>`;
+      if (sC && m.companyAvg != null)
+        compItems += `<div class="sc-comp-item"><div class="sc-comp-label">Co. Avg</div><div class="sc-comp-value">${F.f1(m.companyAvg)}</div></div>`;
+
+      return `
+        <div class="sc-card" style="--sc-accent:${accent}">
+          <div class="sc-header">
+            <div class="sc-metric-name">${m.icon} ${m.name}</div>
+            <div class="sc-status" style="color:${accent}">${isGood ? '✓' : '⚠'}</div>
+          </div>
+          <div class="sc-current">${F.f1(m.current)} <span style="font-size:16px;font-weight:600;color:var(--muted)">${m.unit}</span></div>
+          <div class="sc-comparison">${compItems}</div>
+        </div>`;
+    }).join('');
+
+    /* ── bar chart: current vs target ── */
+    dc('cScoreChart');
+    charts['cScoreChart'] = new Chart(document.getElementById('cScoreChart').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: metrics.map(m => m.name),
+        datasets: [
+          { label: 'Current', data: metrics.map(m => m.current), backgroundColor: CL.brand, borderRadius: 6, borderWidth: 0 },
+          { label: 'Target',  data: metrics.map(m => m.target),  backgroundColor: 'rgba(26,122,60,.18)', borderColor: CL.brand, borderWidth: 2, borderRadius: 6 },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: true, position: 'top' } },
+        scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, beginAtZero: true } }
+      }
+    });
+
+    /* ── horizontal heatmap ── */
+    dc('cHeatmap');
+    const heatData = metrics.map(m => {
+      const varPct = m.target > 0 ? (m.current - m.target) / m.target * 100 : 0;
+      return m.higherIsBetter
+        ? Math.min(100, Math.max(0, 50 + varPct))
+        : Math.min(100, Math.max(0, 50 - varPct));
+    });
+    charts['cHeatmap'] = new Chart(document.getElementById('cHeatmap').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: metrics.map(m => m.name),
+        datasets: [{
+          label: 'Performance Score',
+          data: heatData,
+          backgroundColor: heatData.map(s => s >= 75 ? CL.green : s >= 50 ? CL.amber : CL.red),
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'rgba(0,0,0,0.04)' }, max: 100, ticks: { callback: v => v + '%' } },
+          y: { grid: { display: false } }
+        }
+      }
+    });
+
+    /* ── dynamic thead ── */
+    const theadTR = document.querySelector('#pg-scorecard .bench-table thead tr');
+    if (theadTR) {
+      theadTR.innerHTML = `
+        <th>Metric</th>
+        <th>Current</th>
+        <th>Target</th>
+        <th>Variance</th>
+        ${sR ? '<th>Region Avg</th>' : ''}
+        ${sZ ? '<th>Zone Avg</th>'   : ''}
+        ${sC ? '<th>Company Avg</th>': ''}
+        <th>Last Month</th>
+        <th>Last Year MTD</th>`;
+    }
+
+    /* ── benchmark table rows ── */
+    const fmtCell = (v, unit) => {
+      if (v == null) return `<span style="color:var(--muted-lt)">—</span>`;
+      return `${F.f1(v)} <span style="color:var(--muted-lt);font-size:11px">${unit}</span>`;
+    };
+    const fmtLoading = () => `<span style="color:var(--muted-lt);font-size:11px">…</span>`;
+
+    document.getElementById('benchTable').innerHTML = metrics.map(m => {
+      const variance = m.current - m.target;
+      const varPct   = m.target > 0 ? (variance / m.target * 100) : 0;
+      const isGood   = m.higherIsBetter ? variance >= 0 : variance <= 0;
+
+      /* LM delta badge — only when data is available */
+      let lmCell = loading ? fmtLoading() : fmtCell(m.lm, m.unit);
+      if (!loading && m.lm != null) {
+        const lmDiff = m.current - m.lm;
+        const lmGood = m.higherIsBetter ? lmDiff >= 0 : lmDiff <= 0;
+        lmCell = `${fmtCell(m.lm, m.unit)}
+          <span class="b ${lmGood ? 'b-g' : 'b-r'}" style="margin-left:6px;font-size:10px">
+            ${lmDiff >= 0 ? '+' : ''}${F.f1(lmDiff)}
+          </span>`;
+      }
+
+      /* LY delta badge */
+      let lyCell = loading ? fmtLoading() : fmtCell(m.ly, m.unit);
+      if (!loading && m.ly != null) {
+        const lyDiff = m.current - m.ly;
+        const lyGood = m.higherIsBetter ? lyDiff >= 0 : lyDiff <= 0;
+        lyCell = `${fmtCell(m.ly, m.unit)}
+          <span class="b ${lyGood ? 'b-g' : 'b-r'}" style="margin-left:6px;font-size:10px">
+            ${lyDiff >= 0 ? '+' : ''}${F.f1(lyDiff)}
+          </span>`;
+      }
+
+      return `
+        <tr>
+          <td class="metric-cell">${m.icon} ${m.name}</td>
+          <td class="highlight-cell">${F.f1(m.current)} <span style="color:var(--muted-lt);font-size:11px">${m.unit}</span></td>
+          <td>${F.f1(m.target)} <span style="color:var(--muted-lt);font-size:11px">${m.unit}</span></td>
+          <td><span class="b ${isGood ? 'b-g' : 'b-r'}">${variance >= 0 ? '+' : ''}${F.f1(variance)} (${varPct >= 0 ? '+' : ''}${F.f1(varPct)}%)</span></td>
+          ${sR ? `<td>${fmtCell(m.regionAvg,  m.unit)}</td>` : ''}
+          ${sZ ? `<td>${fmtCell(m.zoneAvg,    m.unit)}</td>` : ''}
+          ${sC ? `<td>${fmtCell(m.companyAvg, m.unit)}</td>` : ''}
+          <td>${lmCell}</td>
+          <td>${lyCell}</td>
+        </tr>`;
+    }).join('');
+  }
+}
+
+
 async function boot(){
   const fill=p=>document.getElementById('bfill').style.width=p+'%';
   const msg=t=>document.getElementById('bmsg').textContent=t;
@@ -1241,7 +1627,7 @@ async function boot(){
     
     const hc=(D.hpc_list||[]).length; animNum(hc); document.getElementById('bclbl').textContent='collection centers loaded';
     msg('Building filters…'); fill(72); populateFilters();
-    msg('Rendering dashboard…'); fill(84); await new Promise(r=>setTimeout(r,0)); renderOverview(); fill(96);
+    msg('Rendering dashboard…'); fill(84); await new Promise(r=>setTimeout(r,0)); renderScorecard(); fill(96);
     const _role = D.user ? D.user.role : 'cxo', _qtab = document.getElementById('tabQuality'); if(_qtab) _qtab.style.display = (_role==='cxo'||_role==='admin') ? '' : 'none';
     msg(`${hc.toLocaleString()} centers · ${(D.farmer_rfm||[]).length.toLocaleString()} farmers · ready`); fill(100);
     await new Promise(r=>setTimeout(r,500)); document.getElementById('boot').classList.add('gone'); setTimeout(()=>document.getElementById('boot').style.display='none',500);
