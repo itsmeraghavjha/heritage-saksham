@@ -116,6 +116,7 @@ SELECT
     [Route Code]                                                          AS route_code,
     CAST([Shift]  AS VARCHAR(5))                                          AS shift,
     CAST([Vendor] AS VARCHAR(20))                                         AS farmer_code,
+    CAST([Farmer Code] AS VARCHAR(10))                                    AS farmer_code_seq,
     [Farmer Name]                                                         AS farmer_name,
     [Milk Type]                                                           AS milk_type,
     CAST([QTY(LTR)]        AS FLOAT)                                      AS qty_ltr,
@@ -374,6 +375,7 @@ def build_month(yr, mth, conn=None, duck=None, progress_cb=None):
                     {yr}  AS yr,
                     {mth} AS mth,
                     farmer_code,
+                    MAX(farmer_code_seq) AS farmer_code_seq,
                     MAX(farmer_name)   AS farmer_name,
                     MAX(hpc_plant_key) AS hpc_plant_key,
                     MAX(hpc_code)      AS hpc_code,
@@ -753,11 +755,13 @@ def build_farmer_health(conn=None, progress_cb=None):
             SELECT hpc_plant_key, farmer_code, delivery_days
             FROM proc_monthly_farmer
             WHERE yr={curr_yr} AND mth={curr_mth} AND delivery_days > 0
+              AND farmer_code_seq != '9999'
         ),
         prev AS (
             SELECT hpc_plant_key, farmer_code
             FROM proc_monthly_farmer
             WHERE yr={prev_yr} AND mth={prev_mth} AND delivery_days > 0
+              AND farmer_code_seq != '9999'
         ),
         -- SQLite has no FULL OUTER JOIN — emulate with LEFT + RIGHT via UNION
         all_pairs AS (
@@ -884,6 +888,7 @@ def build_farmer_rfm(conn=None, progress_cb=None):
             SELECT delivery_days, total_net_price AS payout
             FROM proc_monthly_farmer
             WHERE yr={curr_yr} AND mth={curr_mth} AND delivery_days > 0
+              AND farmer_code_seq != '9999'
         ),
         f_sorted AS (
             SELECT delivery_days,
@@ -915,6 +920,7 @@ def build_farmer_rfm(conn=None, progress_cb=None):
     dormant_check = conn.execute(f"""
         SELECT COUNT(*) FROM proc_monthly_farmer pm
         WHERE pm.yr={prev_yr} AND pm.mth={prev_mth} AND pm.delivery_days > 0
+        AND pm.farmer_code_seq != '9999'
           AND NOT EXISTS (
             SELECT 1 FROM proc_monthly_farmer c2
             WHERE c2.farmer_code   = pm.farmer_code
@@ -928,6 +934,7 @@ def build_farmer_rfm(conn=None, progress_cb=None):
     curr_check = conn.execute(f"""
         SELECT COUNT(*) FROM proc_monthly_farmer
         WHERE yr={curr_yr} AND mth={curr_mth} AND delivery_days > 0
+        AND farmer_code_seq != '9999'
     """).fetchone()[0]
     log.info(f"  Current month active farmers: {curr_check:,}")
 
@@ -935,10 +942,12 @@ def build_farmer_rfm(conn=None, progress_cb=None):
     curr_n = conn.execute(f"""
         SELECT COUNT(*) FROM proc_monthly_farmer
         WHERE yr={curr_yr} AND mth={curr_mth} AND delivery_days>0
+        AND farmer_code_seq != '9999' 
     """).fetchone()[0]
     dormant_n = conn.execute(f"""
         SELECT COUNT(*) FROM proc_monthly_farmer pm
         WHERE pm.yr={prev_yr} AND pm.mth={prev_mth} AND pm.delivery_days > 0
+        AND pm.farmer_code_seq != '9999'
           AND NOT EXISTS (
             SELECT 1 FROM proc_monthly_farmer c2
             WHERE c2.farmer_code=pm.farmer_code AND c2.hpc_plant_key=pm.hpc_plant_key
@@ -986,6 +995,7 @@ def build_farmer_rfm(conn=None, progress_cb=None):
              AND s.snapshot_date  = '{snap_date}'
             WHERE mf.yr={curr_yr} AND mf.mth={curr_mth}
               AND mf.delivery_days > 0
+              AND mf.farmer_code_seq != '9999'
         ),
         -- Last month active farmers (for Dormant detection)
         prev AS (
@@ -1018,6 +1028,7 @@ def build_farmer_rfm(conn=None, progress_cb=None):
              AND s.snapshot_date  = '{snap_date}'
             WHERE pm.yr={prev_yr} AND pm.mth={prev_mth}
               AND pm.delivery_days > 0
+              AND pm.farmer_code_seq != '9999'
               AND NOT EXISTS (
                 SELECT 1 FROM proc_monthly_farmer c2
                 WHERE c2.farmer_code   = pm.farmer_code
@@ -1048,6 +1059,7 @@ def build_farmer_rfm(conn=None, progress_cb=None):
              AND s.snapshot_date  = '{snap_date}'
             WHERE pm.yr={pp_yr} AND pm.mth={pp_mth}
               AND pm.delivery_days > 0
+              AND pm.farmer_code_seq != '9999'
               AND NOT EXISTS (
                 SELECT 1 FROM proc_monthly_farmer p2
                 WHERE p2.farmer_code   = pm.farmer_code
@@ -1147,7 +1159,7 @@ def _ensure_tables(conn):
             avg_rate_per_ltr REAL, avg_cost_per_fat_kg REAL, incentive_pct REAL
         );
         CREATE TABLE IF NOT EXISTS proc_monthly_farmer (
-            yr INTEGER, mth INTEGER, farmer_code TEXT, farmer_name TEXT,
+            yr INTEGER, mth INTEGER, farmer_code TEXT, farmer_code_seq TEXT, farmer_name TEXT,
             hpc_plant_key TEXT, hpc_code TEXT, plant_code TEXT,
             region TEXT, zone TEXT, milk_type TEXT,
             days_in_month INTEGER, delivery_days INTEGER,
@@ -1210,24 +1222,32 @@ def _ensure_tables(conn):
 
 def _ensure_indexes(conn):
     conn.executescript("""
-        CREATE INDEX IF NOT EXISTS idx_d_date         ON proc_daily_hpc(DATE(proc_date));
-        CREATE INDEX IF NOT EXISTS idx_d_hpc          ON proc_daily_hpc(hpc_plant_key, DATE(proc_date));
-        CREATE INDEX IF NOT EXISTS idx_d_region       ON proc_daily_hpc(region, DATE(proc_date));
-        CREATE INDEX IF NOT EXISTS idx_d_zone         ON proc_daily_hpc(zone, DATE(proc_date));
-
-        -- ↓ NEW: covers the bootstrap daily trend query (last 90 days grouped by date+zone+region)
+        CREATE INDEX IF NOT EXISTS idx_d_date          ON proc_daily_hpc(DATE(proc_date));
+        CREATE INDEX IF NOT EXISTS idx_d_hpc           ON proc_daily_hpc(hpc_plant_key, DATE(proc_date));
+        CREATE INDEX IF NOT EXISTS idx_d_region        ON proc_daily_hpc(region, DATE(proc_date));
+        CREATE INDEX IF NOT EXISTS idx_d_zone          ON proc_daily_hpc(zone, DATE(proc_date));
         CREATE INDEX IF NOT EXISTS idx_d_zone_rgn_date ON proc_daily_hpc(zone, region, DATE(proc_date));
 
-        CREATE INDEX IF NOT EXISTS idx_mhpc_ym        ON proc_monthly_hpc(yr, mth);
-        CREATE INDEX IF NOT EXISTS idx_mhpc_rgn       ON proc_monthly_hpc(yr, mth, region);
-        CREATE INDEX IF NOT EXISTS idx_mfmr_ym        ON proc_monthly_farmer(yr, mth);
-        CREATE INDEX IF NOT EXISTS idx_mfmr_rgn       ON proc_monthly_farmer(yr, mth, region);
-        CREATE INDEX IF NOT EXISTS idx_qi_ym          ON proc_quality_incidents(strftime('%Y-%m', proc_date));
-        CREATE INDEX IF NOT EXISTS idx_qi_hpc         ON proc_quality_incidents(hpc_plant_key, proc_date);
-        CREATE INDEX IF NOT EXISTS idx_snap_date      ON proc_period_snapshot(snapshot_date);
-        CREATE INDEX IF NOT EXISTS idx_snap_hpc       ON proc_period_snapshot(hpc_plant_key, snapshot_date);
+        CREATE INDEX IF NOT EXISTS idx_mhpc_ym         ON proc_monthly_hpc(yr, mth);
+        CREATE INDEX IF NOT EXISTS idx_mhpc_rgn        ON proc_monthly_hpc(yr, mth, region);
+
+        CREATE INDEX IF NOT EXISTS idx_mfmr_ym         ON proc_monthly_farmer(yr, mth);
+        CREATE INDEX IF NOT EXISTS idx_mfmr_rgn        ON proc_monthly_farmer(yr, mth, region);
+
+        -- ↓ These two are new — needed by build_farmer_health and build_farmer_rfm NOT EXISTS lookups
+        CREATE INDEX IF NOT EXISTS idx_mfmr_fc_hpc_ym
+            ON proc_monthly_farmer(farmer_code, hpc_plant_key, yr, mth);
+        CREATE INDEX IF NOT EXISTS idx_mfmr_hpc_fc_ym
+            ON proc_monthly_farmer(hpc_plant_key, farmer_code, yr, mth);
+
+        CREATE INDEX IF NOT EXISTS idx_qi_ym           ON proc_quality_incidents(strftime('%Y-%m', proc_date));
+        CREATE INDEX IF NOT EXISTS idx_qi_hpc          ON proc_quality_incidents(hpc_plant_key, proc_date);
+        CREATE INDEX IF NOT EXISTS idx_snap_date       ON proc_period_snapshot(snapshot_date);
+        CREATE INDEX IF NOT EXISTS idx_snap_hpc        ON proc_period_snapshot(hpc_plant_key, snapshot_date);
     """)
     conn.commit()
+
+
 
 def _ensure_default_admin(conn):
     """Create default admin user if no users exist."""

@@ -38,6 +38,10 @@ app.permanent_session_lifetime = timedelta(hours=12)
 
 SQLITE_PATH = r"C:\AnalyticsPortal\portal.db"
 
+# ── SAMPLE FARMER FILTER ──────────────────────────────────────────────────────
+# Exclude test/sample entries from farmer-level analytics
+SAMPLE_FILTER = "farmer_name NOT LIKE '%SAMPLE MILK%'"
+
 # ── DB ────────────────────────────────────────────────────────────────────────
 def get_db():
     conn = sqlite3.connect(SQLITE_PATH)
@@ -50,6 +54,12 @@ def get_db():
 
 _cache      = {}
 _cache_lock = threading.Lock()
+
+
+METRIC_ORDER = [
+    'farmerProductivity', 'hpcProductivity', 'farmerPerHPC',
+    'fat', 'snf', 'costPerKg', 'attrition',
+]
 
 
 def _build_cache():
@@ -80,55 +90,64 @@ def _build_cache():
         # ── hpc_list ──────────────────────────────────────────────────────
         # ── hpc_list ──────────────────────────────────────────────────────
         # ── hpc_list (FIXED: Distinct Farmer Count) ───────────────────────
+        # ── hpc_list (FIXED: Persistent Contacts) ───────────────────────
         hpc_list = q(f"""
             WITH true_farmers AS (
                 SELECT hpc_plant_key, COUNT(DISTINCT farmer_code) AS distinct_farmers
                 FROM proc_monthly_farmer
                 WHERE yr = (SELECT MAX(yr) FROM proc_monthly_farmer)
                   AND mth = (SELECT MAX(mth) FROM proc_monthly_farmer WHERE yr = (SELECT MAX(yr) FROM proc_monthly_farmer))
+                  AND farmer_code_seq != '9999'
                 GROUP BY hpc_plant_key
             )
             SELECT s.hpc_plant_key, s.hpc_name, s.plant_name, s.plant_code, s.region, s.zone,
-                   s.hpr_name, s.mobile_no,
+                   COALESCE(hc.hpr_name, s.hpr_name) AS hpr_name, 
+                   COALESCE(hc.mobile_no, s.mobile_no) AS mobile_no,
                    ROUND(s.mtd,1)         AS mtd,
                    ROUND(s.lm,1)          AS lm,
                    ROUND(s.lmtd,1)        AS lmtd,
                    ROUND(s.lymtd,1)       AS lymtd,
                    s.yoy_growth_pct,
                    s.mom_growth_pct,
-                   COALESCE(tf.distinct_farmers, 0) AS mtd_farmers, /* <-- Replaces flawed snapshot data */
+                   COALESCE(tf.distinct_farmers, 0) AS mtd_farmers,
                    ROUND(s.lm_farmers,0)  AS lm_farmers,
                    ROUND(s.mtd_avg_fat,3) AS mtd_avg_fat,
                    ROUND(s.mtd_rate,2)    AS mtd_rate,
                    ROUND(s.mtd_payout,0)  AS mtd_payout
             FROM proc_period_snapshot s
             LEFT JOIN true_farmers tf ON s.hpc_plant_key = tf.hpc_plant_key
+            LEFT JOIN hpr_contacts hc ON s.hpc_plant_key = hc.hpc_plant_key
             WHERE s.snapshot_date='{snap_date}'
             ORDER BY s.mtd DESC
         """)
 
         # ── monthly_hpc ───────────────────────────────────────────────────
         monthly_hpc = q(f"""
-            SELECT mh.hpc_plant_key,
-                   s.zone, s.region, s.plant_code,
-                   ROUND(mh.total_qty_ltr,0)      AS total_qty_ltr,
-                   ROUND(mh.avg_fat,3)             AS avg_fat,
-                   ROUND(mh.avg_snf,3)             AS avg_snf,
-                   mh.dumping_incidents,
-                   ROUND(mh.total_mcc_incentive,0) AS total_mcc_incentive,
-                   ROUND(mh.total_qty_incentive,0) AS total_qty_incentive,
-                   ROUND(mh.total_bonus,0)         AS total_bonus,
-                   ROUND(mh.total_net_price,0)     AS total_net_price,
-                   ROUND(mh.incentive_pct,2)       AS incentive_pct,
-                   ROUND(mh.avg_cost_per_fat_kg,2) AS avg_cost_per_fat_kg,
-                   ROUND(mh.avg_rate_per_ltr,2)    AS avg_rate_per_ltr,
-                   mh.morning_ltr, mh.evening_ltr
-            FROM proc_monthly_hpc mh
-            JOIN proc_period_snapshot s
-              ON mh.hpc_plant_key = s.hpc_plant_key
-             AND s.snapshot_date  = '{snap_date}'
-            WHERE {yr_mth_hpc}
-        """)
+    SELECT mh.hpc_plant_key,
+           s.zone, s.region, s.plant_code,
+           ROUND(mh.total_qty_ltr,0)      AS total_qty_ltr,
+           ROUND(mh.avg_fat,3)             AS avg_fat,
+           ROUND(mh.avg_snf,3)             AS avg_snf,
+           mh.dumping_incidents,
+           ROUND(mh.total_mcc_incentive,0) AS total_mcc_incentive,
+           ROUND(mh.total_qty_incentive,0) AS total_qty_incentive,
+           ROUND(mh.total_bonus,0)         AS total_bonus,
+           ROUND(mh.total_net_price,0)     AS total_net_price,
+           ROUND(mh.incentive_pct,2)       AS incentive_pct,
+           ROUND(mh.avg_cost_per_fat_kg,2) AS avg_cost_per_fat_kg,
+           ROUND(mh.total_fat_kg,3)        AS total_fat_kg,  
+           ROUND(mh.avg_rate_per_ltr,2)    AS avg_rate_per_ltr,
+           mh.morning_ltr, mh.evening_ltr
+    FROM proc_monthly_hpc mh
+    JOIN proc_period_snapshot s
+      ON mh.hpc_plant_key = s.hpc_plant_key
+     AND s.snapshot_date  = '{snap_date}'
+    WHERE {yr_mth_hpc}
+""")
+
+
+
+
 
         # monthly_farmer removed from bootstrap (97k rows = too large).
         # farmer_rfm serves the same purpose on the frontend.
@@ -211,6 +230,7 @@ def _build_cache():
               ON r.hpc_plant_key = s.hpc_plant_key
              AND s.snapshot_date = '{snap_date}'
             WHERE r.snapshot_date = '{snap_date}'
+              AND r.farmer_name NOT LIKE '%SAMPLE MILK%'
         """) if has_rfm else []
 
         # ── snapshot KPI row ──────────────────────────────────────────────
@@ -280,7 +300,8 @@ def _build_cache():
             "total_farmers":  int(conn.execute(
                 "SELECT COUNT(DISTINCT farmer_code) FROM proc_monthly_farmer "
                 "WHERE yr=(SELECT MAX(yr) FROM proc_monthly_farmer) "
-                "AND mth=(SELECT MAX(mth) FROM proc_monthly_farmer WHERE yr=(SELECT MAX(yr) FROM proc_monthly_farmer))"
+                "AND mth=(SELECT MAX(mth) FROM proc_monthly_farmer WHERE yr=(SELECT MAX(yr) FROM proc_monthly_farmer)) "
+                "AND farmer_code_seq != '9999'"
             ).fetchone()[0] or 0),
             "lm_farmers":     int(conn.execute("""
                 SELECT COUNT(DISTINCT farmer_code) FROM proc_monthly_farmer
@@ -290,6 +311,7 @@ def _build_cache():
                         SELECT MAX(yr * 100 + mth) FROM proc_monthly_farmer
                     )
                 )
+                AND farmer_code_seq != '9999'
             """).fetchone()[0] or 0),
             "total_payout":   round(snap_row["total_payout"] or 0, 0),
             "total_hpcs":     snap_row["total_hpcs"],
@@ -370,17 +392,22 @@ def _build_cache():
             })
 
         # Low attendance insight — use monthly_farmer if rfm not ready
+        # Low attendance insight — use monthly_farmer if rfm not ready
         if has_rfm:
             _low_att_row = conn.execute(f"""
                 SELECT COUNT(*) AS cnt FROM proc_farmer_rfm
-                WHERE snapshot_date='{snap_date}' AND delivery_days < 10
+                WHERE snapshot_date='{snap_date}' 
+                  AND delivery_days < 10
             """).fetchone()
         else:
             yr_c  = "yr=(SELECT MAX(yr) FROM proc_monthly_farmer)"
             mth_c = "mth=(SELECT MAX(mth) FROM proc_monthly_farmer WHERE yr=(SELECT MAX(yr) FROM proc_monthly_farmer))"
             _low_att_row = conn.execute(f"""
                 SELECT COUNT(DISTINCT farmer_code) AS cnt
-                FROM proc_monthly_farmer WHERE {yr_c} AND {mth_c} AND delivery_days < 10
+                FROM proc_monthly_farmer 
+                WHERE {yr_c} AND {mth_c} 
+                  AND delivery_days < 10
+                  AND farmer_code_seq != '9999'
             """).fetchone()
         if _low_att_row and _low_att_row["cnt"] > 100:
             insights.append({
@@ -488,6 +515,76 @@ def _build_cache():
 
 def _build_cache_bg():
     threading.Thread(target=_build_cache, daemon=True).start()
+
+
+
+# ── TARGETS TABLE & HELPERS ──────────────────────────────────────────────────
+
+def _ensure_targets_table(conn):
+    """
+    Create scoped_targets table supporting zone/region/plant/milk-type overrides.
+    Auto-migrates existing company_targets rows on first run.
+    """
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS scoped_targets (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            metric_key   TEXT    NOT NULL,
+            scope_type   TEXT    NOT NULL DEFAULT 'company',
+            scope_value  TEXT    NOT NULL DEFAULT '',
+            milk_type    TEXT    NOT NULL DEFAULT 'all',
+            target_value REAL    NOT NULL,
+            unit         TEXT    NOT NULL,
+            description  TEXT    DEFAULT '',
+            updated_at   TEXT    DEFAULT (datetime('now')),
+            updated_by   INTEGER,
+            UNIQUE(metric_key, scope_type, scope_value, milk_type),
+            FOREIGN KEY(updated_by) REFERENCES users(id)
+        )
+    """)
+ 
+    count = conn.execute("""
+        SELECT COUNT(*) FROM scoped_targets
+        WHERE scope_type='company' AND scope_value='' AND milk_type='all'
+    """).fetchone()[0]
+ 
+    if count == 0:
+        migrated = False
+        # Try to migrate from old company_targets table
+        try:
+            old = conn.execute(
+                "SELECT metric_key, target_value, unit, description FROM company_targets"
+            ).fetchall()
+            if old:
+                conn.executemany("""
+                    INSERT OR IGNORE INTO scoped_targets
+                        (metric_key, scope_type, scope_value, milk_type, target_value, unit, description)
+                    VALUES (?, 'company', '', 'all', ?, ?, ?)
+                """, [(r[0], r[1], r[2], r[3] or '') for r in old])
+                migrated = True
+                log.info("Migrated company_targets → scoped_targets")
+        except Exception:
+            pass
+ 
+        if not migrated:
+            defaults = [
+                ('farmerProductivity', 12.0,  'L/Farmer', 'Average litres per farmer per day'),
+                ('hpcProductivity',    250.0,  'L/HPC',    'Average litres per HPC per day'),
+                ('farmerPerHPC',       25.0,   'Count',    'Average number of farmers per HPC'),
+                ('fat',                3.5,    '%',        'Minimum average FAT percentage'),
+                ('snf',                8.0,    '%',        'Minimum average SNF percentage'),
+                ('costPerKg',          900.0,  '₹/Kg',    'Maximum cost per fat kilogram'),
+                ('attrition',          8.0,    '%',        'Maximum acceptable farmer attrition rate'),
+            ]
+            conn.executemany("""
+                INSERT OR IGNORE INTO scoped_targets
+                    (metric_key, scope_type, scope_value, milk_type, target_value, unit, description)
+                VALUES (?, 'company', '', 'all', ?, ?, ?)
+            """, defaults)
+ 
+        conn.commit()
+        log.info("Initialized scoped_targets with company defaults")
+ 
+
 
 # ── AUTH HELPERS ──────────────────────────────────────────────────────────────
 
@@ -871,6 +968,7 @@ def hpc_detail():
                ROUND(total_net_price,0) AS payout
         FROM proc_monthly_farmer
         WHERE hpc_plant_key=? AND yr=? AND mth=?
+          AND farmer_code_seq != '9999'
         ORDER BY total_net_price DESC LIMIT 10
     """, (key, max_yr, max_mth)).fetchall()
 
@@ -1199,41 +1297,25 @@ def update_hpc_contact(hpc_key):
 @analytics_required
 def scorecard_history():
     import calendar as _cal
- 
     f    = gf()
     conn = get_db()
- 
-    snap_date = conn.execute(
-        "SELECT MAX(snapshot_date) FROM proc_period_snapshot"
-    ).fetchone()[0]
+
+    snap_date = conn.execute("SELECT MAX(snapshot_date) FROM proc_period_snapshot").fetchone()[0]
     if not snap_date:
         conn.close()
         return jsonify({"lm": {}, "ly": {}})
- 
-    cur = conn.execute(
-        "SELECT yr, mth FROM proc_monthly_hpc ORDER BY yr DESC, mth DESC LIMIT 1"
-    ).fetchone()
+
+    cur = conn.execute("SELECT yr, mth FROM proc_monthly_hpc ORDER BY yr DESC, mth DESC LIMIT 1").fetchone()
     if not cur:
         conn.close()
         return jsonify({"lm": {}, "ly": {}})
- 
+
     curr_yr, curr_mth = cur["yr"], cur["mth"]
- 
-    # Last month
+
     lm_yr  = curr_yr  if curr_mth > 1 else curr_yr - 1
     lm_mth = curr_mth - 1 if curr_mth > 1 else 12
- 
-    # Month before last month (for LM attrition: lm-1 → lm)
-    lm1_yr  = lm_yr  if lm_mth > 1 else lm_yr - 1
-    lm1_mth = lm_mth - 1 if lm_mth > 1 else 12
- 
-    # Last year same month
     ly_yr, ly_mth = curr_yr - 1, curr_mth
- 
-    # Month before LY same month (for LY attrition: ly_mth-1 → ly_mth)
-    ly1_yr  = ly_yr  if ly_mth > 1 else ly_yr - 1
-    ly1_mth = ly_mth - 1 if ly_mth > 1 else 12
- 
+
     # ── scope WHERE fragment ──────────────────────────────────────────────────
     scope_clauses, scope_params = [], []
     if f.get("zone"):
@@ -1246,113 +1328,245 @@ def scorecard_history():
         scope_clauses.append("CAST(s.plant_code AS TEXT) = ?")
         scope_params.append(str(f["plant_code"]))
     scope_and = ("AND " + " AND ".join(scope_clauses)) if scope_clauses else ""
- 
-    # ── helpers ───────────────────────────────────────────────────────────────
-    def monthly_hpc_agg(yr, mth):
-        rows = conn.execute(f"""
-            SELECT mh.total_qty_ltr,
-                   mh.avg_fat, mh.avg_snf,
-                   mh.avg_cost_per_fat_kg,
-                   mh.total_net_price
+
+    # ── FAST SQL AGGREGATOR ───────────────────────────────────────────────────
+    def fetch_metrics(yr, mth):
+        # 1. Do all math in SQL instead of looping in Python
+        hpc_agg = conn.execute(f"""
+            SELECT SUM(mh.total_qty_ltr) as total_ltr,
+                   SUM(mh.total_fat_kg) as total_fat_kg,
+                   SUM(mh.total_net_price) as total_net_price,
+                   SUM(mh.avg_fat * mh.total_qty_ltr) / NULLIF(SUM(mh.total_qty_ltr), 0) as fat,
+                   SUM(mh.avg_snf * mh.total_qty_ltr) / NULLIF(SUM(mh.total_qty_ltr), 0) as snf,
+                   COUNT(DISTINCT mh.hpc_plant_key) as hpcs
             FROM proc_monthly_hpc mh
-            JOIN proc_period_snapshot s
-              ON mh.hpc_plant_key = s.hpc_plant_key
-             AND s.snapshot_date  = ?
-            WHERE mh.yr = ? AND mh.mth = ?
-            {scope_and}
-        """, [snap_date, yr, mth] + scope_params).fetchall()
-        if not rows:
-            return {}
-        total_ltr = sum(r["total_qty_ltr"] or 0 for r in rows)
-        if not total_ltr:
-            return {}
-        def wavg(field):
-            return round(sum((r[field] or 0) * (r["total_qty_ltr"] or 0) for r in rows) / total_ltr, 3)
-        total_fat_kg = sum(
-            (r["total_qty_ltr"] or 0) * (r["avg_fat"] or 0) / 100 * 1.032
-            for r in rows
-        )
-        return {
-            "total_ltr"      : total_ltr,
-            "fat"            : wavg("avg_fat"),
-            "snf"            : wavg("avg_snf"),
-            "cost_per_fat_kg": round(
-                sum(r["total_net_price"] or 0 for r in rows) / total_fat_kg, 2
-            ) if total_fat_kg > 0 else None,
-        }
- 
-    def farmer_counts(yr, mth):
-        row = conn.execute(f"""
-            SELECT COUNT(DISTINCT mf.farmer_code)   AS farmers,
-                   COUNT(DISTINCT mf.hpc_plant_key) AS hpcs
+            JOIN proc_period_snapshot s ON mh.hpc_plant_key = s.hpc_plant_key AND s.snapshot_date = ?
+            WHERE mh.yr = ? AND mh.mth = ? {scope_and}
+        """, [snap_date, yr, mth] + scope_params).fetchone()
+
+        # 2. Optimized Farmer Count using exact index, skipping string wildcard scans
+        farmer_row = conn.execute(f"""
+            SELECT COUNT(DISTINCT mf.farmer_code) AS farmers
             FROM proc_monthly_farmer mf
-            JOIN proc_period_snapshot s
-              ON mf.hpc_plant_key = s.hpc_plant_key
-             AND s.snapshot_date  = ?
+            JOIN proc_period_snapshot s ON mf.hpc_plant_key = s.hpc_plant_key AND s.snapshot_date = ?
             WHERE mf.yr = ? AND mf.mth = ?
+              AND mf.farmer_code_seq != '9999'
             {scope_and}
         """, [snap_date, yr, mth] + scope_params).fetchone()
-        return (row["farmers"] or 0, row["hpcs"] or 1) if row else (0, 1)
+
+        total_ltr = hpc_agg["total_ltr"] or 0
+        hpcs      = hpc_agg["hpcs"] or 1
+        farmers   = farmer_row["farmers"] or 0
+        days      = _cal.monthrange(yr, mth)[1]
+        lpd       = total_ltr / days
+
+        return {
+            "farmer_productivity": round(lpd / farmers, 2) if farmers > 0 else None,
+            "hpc_productivity"   : round(lpd / hpcs, 2) if hpcs > 0 else None,
+            "farmers_per_hpc"    : round(farmers / hpcs, 1) if hpcs > 0 else None,
+            "fat"                : round(hpc_agg["fat"], 3) if hpc_agg["fat"] else None,
+            "snf"                : round(hpc_agg["snf"], 3) if hpc_agg["snf"] else None,
+            "cost_per_fat_kg"    : round(hpc_agg["total_net_price"] / hpc_agg["total_fat_kg"], 2) if hpc_agg["total_fat_kg"] else None
+        }
+
+    lm_data = fetch_metrics(lm_yr, lm_mth)
+    ly_data = fetch_metrics(ly_yr, ly_mth)
+    conn.close()
+
+    return jsonify({"lm": lm_data, "ly": ly_data})
+
+
+# ── ADMIN: TARGET MANAGEMENT ──────────────────────────────────────────────────
+
+@app.route("/api/admin/targets")
+@admin_required
+def get_targets():
+    """
+    Return targets for a specific (scope_type, scope_value, milk_type) combo.
+    Each metric shows:
+      - target_value   : the effective value (override if set, else company default)
+      - is_overridden  : True if an explicit row exists for this exact scope
+      - company_value  : always the company/all baseline so the UI can show the diff
+    """
+    scope_type  = request.args.get('scope_type',  'company')
+    scope_value = request.args.get('scope_value', '')
+    milk_type   = request.args.get('milk_type',   'all')
  
-    def farmer_set(yr, mth):
-        rows = conn.execute(f"""
-            SELECT DISTINCT mf.farmer_code
-            FROM proc_monthly_farmer mf
-            JOIN proc_period_snapshot s
-              ON mf.hpc_plant_key = s.hpc_plant_key
-             AND s.snapshot_date  = ?
-            WHERE mf.yr = ? AND mf.mth = ?
-            {scope_and}
-        """, [snap_date, yr, mth] + scope_params).fetchall()
-        return set(r["farmer_code"] for r in rows)
+    conn = get_db()
  
-    def attrition(base_yr, base_mth, next_yr, next_mth):
-        """% of base-period farmers who did NOT appear in next period."""
-        base = farmer_set(base_yr, base_mth)
-        if not base:
-            return None
-        nxt     = farmer_set(next_yr, next_mth)
-        churned = len(base - nxt)
-        return round(churned / len(base) * 100, 1)
+    # Always fetch company/all as the baseline
+    company = {
+        r['metric_key']: dict(r)
+        for r in conn.execute("""
+            SELECT metric_key, target_value, unit, description, updated_at
+            FROM scoped_targets
+            WHERE scope_type='company' AND scope_value='' AND milk_type='all'
+        """).fetchall()
+    }
  
-    # ── build aggregates ──────────────────────────────────────────────────────
-    lm_agg              = monthly_hpc_agg(lm_yr, lm_mth)
-    lm_days             = _cal.monthrange(lm_yr, lm_mth)[1]
-    lm_farmers, lm_hpcs = farmer_counts(lm_yr, lm_mth)
-    lm_lpd              = round(lm_agg.get("total_ltr", 0) / lm_days, 1) if lm_agg else 0
-    # LM attrition: farmers in (lm-1) who churned by lm  ← same formula as current month
-    lm_attrition        = attrition(lm1_yr, lm1_mth, lm_yr, lm_mth)
- 
-    ly_agg              = monthly_hpc_agg(ly_yr, ly_mth)
-    ly_days             = _cal.monthrange(ly_yr, ly_mth)[1]
-    ly_farmers, ly_hpcs = farmer_counts(ly_yr, ly_mth)
-    ly_lpd              = round(ly_agg.get("total_ltr", 0) / ly_days, 1) if ly_agg else 0
-    # LY attrition: farmers in (ly_mth-1) who churned by ly_mth ← same formula, 1 yr back
-    ly_attrition        = attrition(ly1_yr, ly1_mth, ly_yr, ly_mth)
+    # Fetch the explicit override for this scope (if any)
+    overrides = {}
+    if not (scope_type == 'company' and scope_value == '' and milk_type == 'all'):
+        overrides = {
+            r['metric_key']: dict(r)
+            for r in conn.execute("""
+                SELECT metric_key, target_value, unit, description, updated_at, updated_by
+                FROM scoped_targets
+                WHERE scope_type=? AND scope_value=? AND milk_type=?
+            """, (scope_type, scope_value, milk_type)).fetchall()
+        }
  
     conn.close()
  
-    return jsonify({
-        "lm": {
-            "farmer_productivity": round(lm_lpd / lm_farmers, 2) if lm_farmers > 0 and lm_lpd else None,
-            "hpc_productivity"   : round(lm_lpd / lm_hpcs,   2) if lm_hpcs   > 0 else None,
-            "farmers_per_hpc"    : round(lm_farmers / lm_hpcs, 1) if lm_hpcs > 0 else None,
-            "fat"                : lm_agg.get("fat"),
-            "snf"                : lm_agg.get("snf"),
-            "cost_per_fat_kg"    : lm_agg.get("cost_per_fat_kg"),
-            "attrition"          : lm_attrition,
-        },
-        "ly": {
-            "farmer_productivity": round(ly_lpd / ly_farmers, 2) if ly_farmers > 0 and ly_lpd else None,
-            "hpc_productivity"   : round(ly_lpd / ly_hpcs,   2) if ly_hpcs   > 0 else None,
-            "farmers_per_hpc"    : round(ly_farmers / ly_hpcs, 1) if ly_hpcs > 0 else None,
-            "fat"                : ly_agg.get("fat"),
-            "snf"                : ly_agg.get("snf"),
-            "cost_per_fat_kg"    : ly_agg.get("cost_per_fat_kg"),
-            "attrition"          : ly_attrition,
-        },
-    })
+    result = []
+    for key in METRIC_ORDER:
+        base = company.get(key, {})
+        ov   = overrides.get(key)
+        result.append({
+            'metric_key':    key,
+            'target_value':  ov['target_value'] if ov else base.get('target_value', 0),
+            'unit':          base.get('unit', ''),
+            'description':   base.get('description', ''),
+            'is_overridden': ov is not None,
+            'company_value': base.get('target_value'),
+            'scope_type':    scope_type,
+            'scope_value':   scope_value,
+            'milk_type':     milk_type,
+            'updated_at':    (ov or base).get('updated_at'),
+        })
+ 
+    return jsonify(result)
 
+
+
+@app.route("/api/admin/targets", methods=["PUT"])
+@admin_required
+def update_targets():
+    """
+    Bulk upsert / delete target overrides for a given scope+milk_type.
+    Pass reset=True on a target row to remove the override (revert to parent).
+    """
+    data        = request.get_json() or {}
+    targets_in  = data.get('targets', [])
+    scope_type  = data.get('scope_type',  'company')
+    scope_value = data.get('scope_value', '')
+    milk_type   = data.get('milk_type',   'all')
+ 
+    if not targets_in:
+        return jsonify({"error": "No targets provided"}), 400
+ 
+    conn    = get_db()
+    user_id = session.get("user_id")
+ 
+    try:
+        for t in targets_in:
+            metric_key   = t.get('metric_key')
+            target_value = t.get('target_value')
+            reset        = t.get('reset', False)
+ 
+            if not metric_key:
+                continue
+ 
+            if reset:
+                conn.execute("""
+                    DELETE FROM scoped_targets
+                    WHERE metric_key=? AND scope_type=? AND scope_value=? AND milk_type=?
+                """, (metric_key, scope_type, scope_value, milk_type))
+ 
+            elif target_value is not None:
+                # Fetch unit from company defaults
+                unit_row = conn.execute("""
+                    SELECT unit FROM scoped_targets
+                    WHERE metric_key=? AND scope_type='company'
+                      AND scope_value='' AND milk_type='all'
+                """, (metric_key,)).fetchone()
+                unit = unit_row[0] if unit_row else ''
+ 
+                conn.execute("""
+                    INSERT INTO scoped_targets
+                        (metric_key, scope_type, scope_value, milk_type,
+                         target_value, unit, updated_at, updated_by)
+                    VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?)
+                    ON CONFLICT(metric_key, scope_type, scope_value, milk_type)
+                    DO UPDATE SET
+                        target_value = excluded.target_value,
+                        updated_at   = excluded.updated_at,
+                        updated_by   = excluded.updated_by
+                """, (metric_key, scope_type, scope_value, milk_type,
+                      float(target_value), unit, user_id))
+ 
+        conn.commit()
+        log.info(
+            f"Targets saved: scope={scope_type}/{scope_value} "
+            f"milk={milk_type} by user_id={user_id}"
+        )
+        _build_cache_bg()
+ 
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        log.error(f"Target update failed: {e}")
+        return jsonify({"error": str(e)}), 500
+ 
+    conn.close()
+    return jsonify({"success": True})
+ 
+ 
+
+
+@app.route("/api/targets")
+@login_required
+def get_public_targets():
+    """
+    Dashboard endpoint: returns the most-specific applicable target for
+    each metric given the current zone/region/plant_code/milk_type context.
+ 
+    Priority (highest first):
+      plant+specific > plant+all > region+specific > region+all >
+      zone+specific  > zone+all  > company+specific > company+all
+    """
+    zone       = request.args.get('zone',       '')
+    region     = request.args.get('region',     '')
+    plant_code = request.args.get('plant_code', '')
+    milk_type  = request.args.get('milk_type',  'all')
+ 
+    conn = get_db()
+ 
+    rows = conn.execute("""
+        SELECT metric_key, scope_type, scope_value, milk_type, target_value, unit
+        FROM scoped_targets
+        WHERE (
+               (scope_type = 'company' AND scope_value = '')
+            OR (scope_type = 'zone'    AND scope_value = ?)
+            OR (scope_type = 'region'  AND scope_value = ?)
+            OR (scope_type = 'plant'   AND scope_value = ?)
+        )
+          AND (milk_type = 'all' OR milk_type = ?)
+    """, (zone, region, str(plant_code), milk_type)).fetchall()
+ 
+    conn.close()
+ 
+    # Resolve: highest (scope_priority, milk_priority) wins per metric
+    SCOPE_P = {'plant': 4, 'region': 3, 'zone': 2, 'company': 1}
+    best    = {}
+ 
+    for r in rows:
+        mk    = r['metric_key']
+        score = (
+            SCOPE_P.get(r['scope_type'], 0),
+            2 if r['milk_type'] != 'all' else 1,
+        )
+        if mk not in best or score > best[mk]['_score']:
+            best[mk] = {
+                'value':  r['target_value'],
+                'unit':   r['unit'],
+                'source': r['scope_type'],
+                '_score': score,
+            }
+ 
+    # Strip internal score key
+    return jsonify({k: {kk: vv for kk, vv in v.items() if kk != '_score'}
+                    for k, v in best.items()})
 # ── RUN ───────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -1361,6 +1575,7 @@ if __name__ == "__main__":
     _ensure_tables(conn)
     _ensure_indexes(conn)
     _ensure_default_admin(conn)
+    _ensure_targets_table(conn)  # ← Add this line
     conn.close()
     _build_cache_bg()
     app.run(debug=True, port=5000, threaded=True)

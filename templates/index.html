@@ -359,27 +359,7 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
     <div class="loading"><div class="spin"></div> Loading metrics...</div>
   </div>
   
-  <div class="g2" style="margin-bottom: 24px;">
-    <div class="card">
-      <div class="card-head">
-        <div>
-          <div class="c-title">Performance vs Benchmarks</div>
-          <div class="c-sub">Current status against key targets</div>
-        </div>
-      </div>
-      <div class="c-body"><div class="ch h240"><canvas id="cScoreChart"></canvas></div></div>
-    </div>
-    
-    <div class="card">
-      <div class="card-head">
-        <div>
-          <div class="c-title">Metric Heatmap</div>
-          <div class="c-sub">Overall performance health</div>
-        </div>
-      </div>
-      <div class="c-body"><div class="ch h240"><canvas id="cHeatmap"></canvas></div></div>
-    </div>
-  </div>
+
   
   <div class="bench-table">
     <table>
@@ -534,7 +514,7 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
   </div>
   <div class="tbl-card">
     <div class="tbl-head">
-      <div><div class="th-title">Quality &amp; Economics by Region</div><div class="th-sub">⚠ = below target &nbsp;·&nbsp; FAT ≥ 3.5% &nbsp;·&nbsp; SNF ≥ 8.0%</div></div>
+      <div><div class="th-title">Quality &amp; Economics by Region</div><div class="th-sub" id="qlThSub">⚠ = below target &nbsp;·&nbsp; FAT ≥ 3.5% &nbsp;·&nbsp; SNF ≥ 8.0%</div></div>
     </div>
     <div class="tbl-toolbar">
       <input class="tbl-srch" id="srchQl" placeholder="Search all columns…" oninput="resetPage('quality'); renderQuality()">
@@ -654,6 +634,50 @@ function sF(a,k){return a.reduce((s,r)=>s+(Number(r[k])||0),0);}
 function aF(a,k){const f=a.filter(r=>r[k]!=null);return f.length?sF(f,k)/f.length:null;}
 function wv(a,v,w){const ws=sF(a,w);return ws?a.reduce((s,r)=>s+(Number(r[v])||0)*(Number(r[w])||0),0)/ws:null;}
 function gby(a,k){return a.reduce((m,r)=>{const kk=r[k];if(!m[kk])m[kk]=[];m[kk].push(r);return m;},{});}
+
+/* ── TARGETS — GLOBAL SCOPE ── */
+let TARGETS = {
+  farmerProductivity: 12,
+  hpcProductivity   : 250,
+  farmerPerHPC      : 25,
+  fat               : 3.5,
+  snf               : 8.0,
+  costPerKg         : 900,
+  attrition         : 8,
+};
+
+
+let TARGET_SOURCES = {};
+
+// Load targets from backend
+async function loadCompanyTargets(milkType = 'all') {
+  try {
+    const params = new URLSearchParams();
+    if (gF.zone)       params.append('zone',       gF.zone);
+    if (gF.region)     params.append('region',     gF.region);
+    if (gF.plant_code) params.append('plant_code', gF.plant_code);
+    if (milkType && milkType !== 'all') params.append('milk_type', milkType);
+ 
+    const res = await fetch('/api/targets?' + params.toString());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+ 
+    const data = await res.json();
+ 
+    // data shape: { metricKey: { value, unit, source }, ... }
+    Object.entries(data).forEach(([key, obj]) => {
+      if (obj && obj.value !== undefined) {
+        TARGETS[key]        = obj.value;
+        TARGET_SOURCES[key] = obj.source || 'company';
+      }
+    });
+ 
+    console.log('✓ Targets loaded:', TARGETS, 'Sources:', TARGET_SOURCES);
+ 
+  } catch (e) {
+    console.warn('Failed to load targets, using defaults:', e);
+  }
+}
+/* ── SCORECARD RENDERING ── */
 
 /* SCOPE & CASCADING FILTERS */
 function updateFilterOptions() {
@@ -1043,12 +1067,17 @@ function renderFarmers(){
   const rfm=filt(D.farmer_rfm||[]);
   const consistent=rfm.filter(f=>f.delivery_days>=25).length, irregular=rfm.filter(f=>f.delivery_days<10).length, qrisk=rfm.filter(f=>(f.quality_risk||0)>0).length;
 
+ // 1. Filter out the 'ghost' data (Dormant & Churned) to get true active numbers
+  const activeRfm = rfm.filter(f => f.tier !== 'Dormant' && f.tier !== 'Churned');
+
   document.getElementById('fmrKpis').innerHTML=[
-    {icon:'👨‍🌾',ibg:CL.greenlt, l:'Active Farmers',     v:F.n(rfm.length),               ctx:'Delivered at least once',            ac:CL.green},
-    {icon:'✅', ibg:CL.teallt,  l:'Consistent (≥25d)',  v:F.n(consistent),                   ctx:'<span class="b b-g">'+(rfm.length?((consistent/rfm.length)*100).toFixed(0):0)+'% of total</span>', ac:CL.teal},
-    {icon:'⚠️', ibg:CL.redlt,   l:'Irregular (&lt;10d)',v:F.n(irregular),                    ctx:'<span class="b b-r">Attendance risk</span>',     ac:CL.red},
-    {icon:'🧪', ibg:CL.amberlt, l:'Quality Risk',        v:F.n(qrisk),                        ctx:'<span class="b b-a">Low FAT</span>',              ac:CL.amber},
-    {icon:'💰', ibg:CL.bluelt,  l:'Total Payout',        v:F.cr(sF(rfm,'total_payout')),  ctx:'This month',                                      ac:CL.blue},
+    {icon:'👨‍🌾',ibg:CL.greenlt, l:'Active Farmers',     v:F.n(activeRfm.length),               ctx:'Delivered at least once',            ac:CL.green},
+    {icon:'✅', ibg:CL.teallt,  l:'Consistent (≥25d)',  v:F.n(consistent),               ctx:'<span class="b b-g">'+(activeRfm.length?((consistent/activeRfm.length)*100).toFixed(0):0)+'% of active</span>', ac:CL.teal},
+    {icon:'⚠️', ibg:CL.redlt,   l:'Irregular (<10d)',   v:F.n(irregular),                   ctx:'<span class="b b-r">Attendance risk</span>',     ac:CL.red},
+    {icon:'🧪', ibg:CL.amberlt, l:'Quality Risk',        v:F.n(qrisk),                       ctx:'<span class="b b-a">Low FAT</span>',              ac:CL.amber},
+    
+    // 2. Point the Total Payout sum to ONLY the active farmers
+    {icon:'💰', ibg:CL.bluelt,  l:'Total Payout',        v:F.cr(sF(activeRfm,'total_payout')),  ctx:'This month (Active Only)', ac:CL.blue},
   ].map(h=>`<div class="kpi" style="--k-accent:${h.ac}"><div class="k-icon" style="background:${h.ibg}">${h.icon}</div><div class="k-label">${h.l}</div><div class="k-value">${h.v}</div><div class="k-ctx">${h.ctx}</div></div>`).join('');
 
   const TIERS=[
@@ -1105,14 +1134,28 @@ function renderFarmerTable(){
 }
 
 /* QUALITY */
+/* QUALITY */
 function renderQuality(){
-  const mhpc=filt(D.monthly_hpc), fat=wv(mhpc,'avg_fat','total_qty_ltr'), snf=wv(mhpc,'avg_snf','total_qty_ltr'), cost=aF(mhpc,'avg_cost_per_fat_kg'), fOk=(fat||0)>=3.5, sOk=(snf||0)>=8.0, cOk=(cost||0)<900;
+  const mhpc=filt(D.monthly_hpc), fat=wv(mhpc,'avg_fat','total_qty_ltr'), snf=wv(mhpc,'avg_snf','total_qty_ltr'), cost=aF(mhpc,'avg_cost_per_fat_kg');
+  
+  // 1. Pull dynamic targets from the global TARGETS object
+  const tgtFat  = TARGETS.fat || 3.5;
+  const tgtSnf  = TARGETS.snf || 8.0;
+  const tgtCost = TARGETS.costPerKg || 900;
+  
+  // 2. Evaluate against dynamic targets
+  const fOk=(fat||0)>=tgtFat, sOk=(snf||0)>=tgtSnf, cOk=(cost||0)<tgtCost;
 
+  // 3. Update the Traffic Light UI text dynamically
   document.getElementById('tlRow').innerHTML=[
-    {emoji:fOk?'✅':'🚨', c:fOk?CL.green:CL.red, val:F.f3(fat)+'%', lbl:'Average FAT%',   tgt:'Target ≥ 3.5%',    sta:fOk?'On Target':'Below Target', sl:fOk?'ok':'bad'},
-    {emoji:sOk?'✅':'🚨', c:sOk?CL.green:CL.red, val:F.f3(snf)+'%', lbl:'Average SNF%',   tgt:'Target ≥ 8.0%',    sta:sOk?'On Target':'Below Target', sl:sOk?'ok':'bad'},
-    {emoji:cOk?'✅':'⚠️', c:cOk?CL.green:CL.amber,val:'₹'+F.f2(cost),lbl:'Cost / Fat Kg', tgt:'Benchmark ₹900/kg', sta:cOk?'Efficient':'Monitor Cost',  sl:cOk?'ok':'warn'},
+    {emoji:fOk?'✅':'🚨', c:fOk?CL.green:CL.red, val:F.f3(fat)+'%', lbl:'Average FAT%',   tgt:`Target ≥ ${tgtFat}%`,    sta:fOk?'On Target':'Below Target', sl:fOk?'ok':'bad'},
+    {emoji:sOk?'✅':'🚨', c:sOk?CL.green:CL.red, val:F.f3(snf)+'%', lbl:'Average SNF%',   tgt:`Target ≥ ${tgtSnf}%`,    sta:sOk?'On Target':'Below Target', sl:sOk?'ok':'bad'},
+    {emoji:cOk?'✅':'⚠️', c:cOk?CL.green:CL.amber,val:'₹'+F.f2(cost),lbl:'Cost / Fat Kg', tgt:`Benchmark ₹${tgtCost}/kg`, sta:cOk?'Efficient':'Monitor Cost',  sl:cOk?'ok':'warn'},
   ].map(t=>`<div class="tl" style="--tl-c:${t.c}"><span class="tl-emoji">${t.emoji}</span><div class="tl-val">${t.val}</div><div class="tl-lbl">${t.lbl}</div><div class="tl-tgt">${t.tgt}</div><div class="tl-sta ${t.sl}">${t.sta}</div></div>`).join('');
+
+  // Update the subtitle text if the ID exists
+  const qlSub = document.getElementById('qlThSub');
+  if(qlSub) qlSub.innerHTML = `⚠ = below target &nbsp;·&nbsp; FAT ≥ ${tgtFat}% &nbsp;·&nbsp; SNF ≥ ${tgtSnf}%`;
 
   const qd=filt(D.daily), qbd=gby(qd,'proc_date');
   const tr=Object.entries(qbd).sort(([a],[b])=>a.localeCompare(b)).map(([d,rows])=>{ const fk=sF(rows,'fat_kg'),sk=sF(rows,'snf_kg'),qk=sF(rows,'qty_kg'); return{d,fat:qk?fk/qk*100:null,snf:qk?sk/qk*100:null,inc:sF(rows,'incidents')}; });
@@ -1132,12 +1175,15 @@ function renderQuality(){
   const pagedData = allR.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE);
 
   document.getElementById('tbQl').innerHTML=pagedData.map(r=>{
-    const fl=(r.fat||0)<3.5,sl=(r.snf||0)<8.0;
+    // 4. Update the red/amber warning logic in the table rows
+    const fl=(r.fat||0)<tgtFat,sl=(r.snf||0)<tgtSnf;
+    
     return`<tr class="${fl||sl?'tr-amber':''}"><td><strong>${r.region}</strong></td><td style="color:${fl?'var(--red)':'var(--amber)'};font-weight:${fl?700:400}">${F.f3(r.fat)}${fl?' ⚠':''}</td><td style="color:${sl?'var(--red)':'var(--muted-lt)'}">${F.f3(r.snf)}${sl?' ⚠':''}</td><td>${r.dumps>0?`<span class="b b-r">${F.n(r.dumps)}</span>`:'—'}</td><td>₹${F.f2(r.rate)}</td><td>₹${F.f2(r.cost)}</td><td>${F.f1(r.ip)}%</td><td>${F.cr(r.pay)}</td></tr>`;
   }).join('');
 
   document.getElementById('pagQuality').innerHTML = buildPagination(totalItems, 'quality', 'renderQuality');
 }
+
 
 /* PANEL */
 /* PANEL */
@@ -1330,14 +1376,14 @@ async function renderScorecard() {
   function calcMetrics(hList, mList, fList) {
     const totL = sF(hList, 'mtd');
     const totF = sF(hList, 'mtd_farmers');
-    const totH = hList.length || 1;
+    const totH = hList.filter(h => h.mtd > 0).length || 1;
     return {
       farmerProductivity: totF > 0 ? totL / totF : 0,
       hpcProductivity   : totL / totH,
       farmerPerHPC      : totF / totH,
       fat      : wv(hList.filter(h => (h.mtd_avg_fat || 0) > 0), 'mtd_avg_fat', 'mtd') || 0,
       snf      : wv(mList, 'avg_snf', 'total_qty_ltr') || 0,
-      costPerKg: aF(mList, 'avg_cost_per_fat_kg') || 0,
+      costPerKg: (sF(mList, 'total_net_price') / sF(mList, 'total_fat_kg')) || 0,
       attrition: fList.length > 0 ? (aF(fList, 'attrition_pct') || 0) : 0,
     };
   }
@@ -1365,25 +1411,17 @@ async function renderScorecard() {
   }
 
   /* ── targets ── */
-  const TARGETS = {
-    farmerProductivity: 12,
-    hpcProductivity   : 250,
-    farmerPerHPC      : 25,
-    fat               : 3.5,
-    snf               : 8.0,
-    costPerKg         : 900,
-    attrition         : 8,
-  };
+/* ── targets (loaded from backend) ── */
 
   /* ── metric definitions ── */
   const METRIC_DEFS = [
     { key: 'farmerProductivity', name: 'Farmer Productivity', unit: 'L/Farmer', icon: '👨‍🌾', higherIsBetter: true  },
     { key: 'hpcProductivity',    name: 'HPC Productivity',    unit: 'L/HPC',    icon: '🏭',  higherIsBetter: true  },
     { key: 'farmerPerHPC',       name: 'Farmers per HPC',     unit: 'Count',    icon: '📊',  higherIsBetter: true  },
+    { key: 'attrition',          name: 'Farmer Attrition',     unit: '%',        icon: '📉',  higherIsBetter: false },
     { key: 'fat',                name: 'Average FAT',          unit: '%',        icon: '🧪',  higherIsBetter: true  },
     { key: 'snf',                name: 'Average SNF',          unit: '%',        icon: '⚗️',  higherIsBetter: true  },
     { key: 'costPerKg',          name: 'Cost per Fat Kg',      unit: '₹/Kg',    icon: '💰',  higherIsBetter: false },
-    { key: 'attrition',          name: 'Farmer Attrition',     unit: '%',        icon: '📉',  higherIsBetter: false },
   ];
 
   /* ── mapping: metric key → history API field name ── */
@@ -1391,10 +1429,10 @@ async function renderScorecard() {
     farmerProductivity: 'farmer_productivity',
     hpcProductivity   : 'hpc_productivity',
     farmerPerHPC      : 'farmers_per_hpc',
+    attrition         : 'attrition',
     fat               : 'fat',
     snf               : 'snf',
     costPerKg         : 'cost_per_fat_kg',
-    attrition         : 'attrition',
   };
 
   /* ── show column flags ── */
@@ -1475,52 +1513,8 @@ async function renderScorecard() {
         </div>`;
     }).join('');
 
-    /* ── bar chart: current vs target ── */
-    dc('cScoreChart');
-    charts['cScoreChart'] = new Chart(document.getElementById('cScoreChart').getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: metrics.map(m => m.name),
-        datasets: [
-          { label: 'Current', data: metrics.map(m => m.current), backgroundColor: CL.brand, borderRadius: 6, borderWidth: 0 },
-          { label: 'Target',  data: metrics.map(m => m.target),  backgroundColor: 'rgba(26,122,60,.18)', borderColor: CL.brand, borderWidth: 2, borderRadius: 6 },
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: true, position: 'top' } },
-        scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, beginAtZero: true } }
-      }
-    });
 
-    /* ── horizontal heatmap ── */
-    dc('cHeatmap');
-    const heatData = metrics.map(m => {
-      const varPct = m.target > 0 ? (m.current - m.target) / m.target * 100 : 0;
-      return m.higherIsBetter
-        ? Math.min(100, Math.max(0, 50 + varPct))
-        : Math.min(100, Math.max(0, 50 - varPct));
-    });
-    charts['cHeatmap'] = new Chart(document.getElementById('cHeatmap').getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: metrics.map(m => m.name),
-        datasets: [{
-          label: 'Performance Score',
-          data: heatData,
-          backgroundColor: heatData.map(s => s >= 75 ? CL.green : s >= 50 ? CL.amber : CL.red),
-          borderRadius: 6,
-        }]
-      },
-      options: {
-        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { color: 'rgba(0,0,0,0.04)' }, max: 100, ticks: { callback: v => v + '%' } },
-          y: { grid: { display: false } }
-        }
-      }
-    });
+
 
     /* ── dynamic thead ── */
     const theadTR = document.querySelector('#pg-scorecard .bench-table thead tr');
@@ -1544,7 +1538,7 @@ async function renderScorecard() {
     };
     const fmtLoading = () => `<span style="color:var(--muted-lt);font-size:11px">…</span>`;
 
-    document.getElementById('benchTable').innerHTML = metrics.map(m => {
+    document.getElementById('benchTable').innerHTML = metrics.filter(m => m.key !== 'attrition').map(m => {
       const variance = m.current - m.target;
       const varPct   = m.target > 0 ? (variance / m.target * 100) : 0;
       const isGood   = m.higherIsBetter ? variance >= 0 : variance <= 0;
@@ -1588,6 +1582,8 @@ async function renderScorecard() {
 }
 
 
+
+
 async function boot(){
   const fill=p=>document.getElementById('bfill').style.width=p+'%';
   const msg=t=>document.getElementById('bmsg').textContent=t;
@@ -1627,6 +1623,7 @@ async function boot(){
     
     const hc=(D.hpc_list||[]).length; animNum(hc); document.getElementById('bclbl').textContent='collection centers loaded';
     msg('Building filters…'); fill(72); populateFilters();
+    msg('Loading targets…'); fill(78); await loadCompanyTargets();
     msg('Rendering dashboard…'); fill(84); await new Promise(r=>setTimeout(r,0)); renderScorecard(); fill(96);
     const _role = D.user ? D.user.role : 'cxo', _qtab = document.getElementById('tabQuality'); if(_qtab) _qtab.style.display = (_role==='cxo'||_role==='admin') ? '' : 'none';
     msg(`${hc.toLocaleString()} centers · ${(D.farmer_rfm||[]).length.toLocaleString()} farmers · ready`); fill(100);
