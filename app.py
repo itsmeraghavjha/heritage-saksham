@@ -62,7 +62,7 @@ METRIC_ORDER = [
 ]
 
 
-def _build_cache():
+def  _build_cache():
     log.info("Building bootstrap cache...")
     t0 = time.time()
     try:
@@ -91,9 +91,22 @@ def _build_cache():
         # ── hpc_list ──────────────────────────────────────────────────────
         # ── hpc_list (FIXED: Distinct Farmer Count) ───────────────────────
         # ── hpc_list (FIXED: Persistent Contacts) ───────────────────────
+        # ── hpc_list (FIXED: Distinct Farmer Count) ───────────────────────
         hpc_list = q(f"""
             WITH true_farmers AS (
+                -- COUNT(DISTINCT farmer_code) across all milk types per HPC — no milk_type split
+                -- because proc_monthly_farmer has one row per farmer (MAX milk_type), and the
+                -- snapshot now has one row per HPC. Splitting by milk_type would leave some
+                -- farmers uncounted when their MAX milk_type doesn't match the snapshot row.
                 SELECT hpc_plant_key, COUNT(DISTINCT farmer_code) AS distinct_farmers
+                FROM proc_monthly_farmer
+                WHERE yr = (SELECT MAX(yr) FROM proc_monthly_farmer)
+                  AND mth = (SELECT MAX(mth) FROM proc_monthly_farmer WHERE yr = (SELECT MAX(yr) FROM proc_monthly_farmer))
+                  AND farmer_code_seq != '9999'
+                GROUP BY hpc_plant_key
+            ),
+            true_hpc_farmers AS (
+                SELECT hpc_plant_key, COUNT(DISTINCT farmer_code) AS total_hpc_farmers
                 FROM proc_monthly_farmer
                 WHERE yr = (SELECT MAX(yr) FROM proc_monthly_farmer)
                   AND mth = (SELECT MAX(mth) FROM proc_monthly_farmer WHERE yr = (SELECT MAX(yr) FROM proc_monthly_farmer))
@@ -110,20 +123,24 @@ def _build_cache():
                    s.yoy_growth_pct,
                    s.mom_growth_pct,
                    COALESCE(tf.distinct_farmers, 0) AS mtd_farmers,
+                   COALESCE(thf.total_hpc_farmers, 0) AS mtd_farmers_total,
                    ROUND(s.lm_farmers,0)  AS lm_farmers,
                    ROUND(s.mtd_avg_fat,3) AS mtd_avg_fat,
                    ROUND(s.mtd_rate,2)    AS mtd_rate,
                    ROUND(s.mtd_payout,0)  AS mtd_payout
             FROM proc_period_snapshot s
             LEFT JOIN true_farmers tf ON s.hpc_plant_key = tf.hpc_plant_key
+            LEFT JOIN true_hpc_farmers thf ON s.hpc_plant_key = thf.hpc_plant_key
             LEFT JOIN hpr_contacts hc ON s.hpc_plant_key = hc.hpc_plant_key
             WHERE s.snapshot_date='{snap_date}'
             ORDER BY s.mtd DESC
         """)
 
         # ── monthly_hpc ───────────────────────────────────────────────────
+        # ── monthly_hpc ───────────────────────────────────────────────────
+        # ── monthly_hpc ───────────────────────────────────────────────────
         monthly_hpc = q(f"""
-    SELECT mh.hpc_plant_key,
+    SELECT mh.hpc_plant_key, mh.milk_type, 
            s.zone, s.region, s.plant_code,
            ROUND(mh.total_qty_ltr,0)      AS total_qty_ltr,
            ROUND(mh.avg_fat,3)             AS avg_fat,
@@ -142,6 +159,8 @@ def _build_cache():
     JOIN proc_period_snapshot s
       ON mh.hpc_plant_key = s.hpc_plant_key
      AND s.snapshot_date  = '{snap_date}'
+     -- NOTE: no milk_type join — snapshot is 1-row-per-HPC; monthly_hpc has 2 rows
+     -- (Cow + Buffalo) which correctly pass through for the frontend milk_type filter.
     WHERE {yr_mth_hpc}
 """)
 
@@ -172,11 +191,13 @@ def _build_cache():
         """)
 
         # ── quality_incidents — current month per HPC ─────────────────────
+        # ── quality_incidents — current month per HPC ─────────────────────
+        # ── quality_incidents — current month per HPC ─────────────────────
         latest_ym = conn.execute(
             "SELECT strftime('%Y-%m', MAX(DATE(proc_date))) FROM proc_quality_incidents"
         ).fetchone()[0]
         quality_incidents = q(f"""
-            SELECT qi.hpc_plant_key,
+            SELECT qi.hpc_plant_key, qi.milk_type,
                    s.hpc_name, s.region, s.zone, s.plant_code,
                    COUNT(*)             AS incidents,
                    qi.incident_type,
@@ -186,11 +207,15 @@ def _build_cache():
             JOIN proc_period_snapshot s
               ON qi.hpc_plant_key = s.hpc_plant_key
              AND s.snapshot_date  = '{snap_date}'
+             -- No milk_type join: snapshot is 1-row-per-HPC; qi.milk_type preserved in SELECT
+             -- for frontend milk_type filtering without causing row duplication.
             WHERE strftime('%Y-%m', DATE(qi.proc_date)) = '{latest_ym}'
-            GROUP BY qi.hpc_plant_key
+            GROUP BY qi.hpc_plant_key, qi.milk_type
             ORDER BY incidents DESC
         """) if latest_ym else []
 
+        # ── farmer_health — per HPC ───────────────────────────────────────
+        # ── farmer_health — per HPC ───────────────────────────────────────
         # ── farmer_health — per HPC ───────────────────────────────────────
         has_fh = conn.execute(
             "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='proc_hpc_farmer_health'"
@@ -201,34 +226,44 @@ def _build_cache():
                    fh.net_change, fh.attrition_pct, fh.segment,
                    s.hpc_name, s.region, s.zone, s.plant_code
             FROM proc_hpc_farmer_health fh
-            JOIN proc_period_snapshot s
+            JOIN (
+                SELECT hpc_plant_key, MAX(hpc_name) as hpc_name, 
+                       MAX(region) as region, MAX(zone) as zone, MAX(plant_code) as plant_code
+                FROM proc_period_snapshot 
+                WHERE snapshot_date = '{snap_date}'
+                GROUP BY hpc_plant_key
+            ) s                                       /* <-- THIS SUBQUERY PREVENTS DUPLICATION */
               ON fh.hpc_plant_key = s.hpc_plant_key
-             AND s.snapshot_date  = '{snap_date}'
             WHERE fh.snapshot_date = '{snap_date}'
-        """) if has_fh else []
+        """) if has_fh else [] 
 
+        # ── farmer_rfm ────────────────────────────────────────────────────
+        # ── farmer_rfm ────────────────────────────────────────────────────
+        # ── farmer_rfm ────────────────────────────────────────────────────
         # ── farmer_rfm ────────────────────────────────────────────────────
         has_rfm = conn.execute(
             "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='proc_farmer_rfm'"
         ).fetchone()[0]
-        # farmer_rfm: minimal fields only — keeps payload small
-        # Join snapshot to get plant_code (proc_farmer_rfm may not have it directly)
+        
         farmer_rfm = q(f"""
             SELECT r.farmer_code,
                    SUBSTR(r.farmer_name,1,40)     AS farmer_name,
                    r.hpc_plant_key, r.region, r.zone,
                    CAST(s.plant_code AS TEXT)      AS plant_code,
                    r.tier,
+                   r.milk_type,
                    ROUND(r.total_qty_ltr,0)        AS total_qty_ltr,
-                   ROUND(r.total_payout,0)          AS total_payout,
+                   ROUND(r.total_payout,0)         AS total_payout,
                    r.delivery_days,
-                   ROUND(r.avg_fat,2)               AS avg_fat,
-                   ROUND(r.lpd,1)                   AS lpd,
+                   ROUND(r.avg_fat,2)              AS avg_fat,
+                   ROUND(r.lpd,1)                  AS lpd,
                    CASE WHEN r.avg_fat < 3.5 THEN 1 ELSE 0 END AS quality_risk
             FROM proc_farmer_rfm r
             JOIN proc_period_snapshot s
               ON r.hpc_plant_key = s.hpc_plant_key
              AND s.snapshot_date = '{snap_date}'
+             -- No milk_type join: snapshot is 1-row-per-HPC; r.milk_type in SELECT
+             -- lets the frontend filter by milk type without duplicating farmer rows.
             WHERE r.snapshot_date = '{snap_date}'
               AND r.farmer_name NOT LIKE '%SAMPLE MILK%'
         """) if has_rfm else []
@@ -243,7 +278,7 @@ def _build_cache():
                 SUM(mtd_farmers)   AS total_farmers,
                 SUM(lm_farmers)    AS lm_farmers,
                 SUM(mtd_payout)    AS total_payout,
-                COUNT(*)           AS total_hpcs,
+                COUNT(DISTINCT hpc_plant_key) AS total_hpcs,   -- snapshot is now 1-row-per-HPC; DISTINCT guards against any future milk_type rows
                 SUM(CASE WHEN mtd=0 THEN 1 ELSE 0 END) AS dark_hpcs,
                 SUM(CASE WHEN yoy_growth_pct < -0.2 AND mtd>0 THEN 1 ELSE 0 END) AS critical_hpcs,
                 SUM(CASE WHEN yoy_growth_pct>=-0.2 AND yoy_growth_pct<0 AND mtd>0
@@ -715,8 +750,8 @@ def _recompute_snapshot(hpcs, mhpc, base_snap):
         "total_farmers":  int(sum(h.get("mtd_farmers", 0) or 0 for h in hpcs)),
         "lm_farmers":     int(sum(h.get("lm_farmers",  0) or 0 for h in hpcs)),
         "total_payout":   round(pay, 0),
-        "total_hpcs":     len(hpcs),
-        "dark_hpcs":      len([h for h in hpcs if not h.get("mtd")]),
+        "total_hpcs":     len({h.get("hpc_plant_key") for h in hpcs}),   # distinct HPCs, not list rows
+        "dark_hpcs":      len({h.get("hpc_plant_key") for h in hpcs if not h.get("mtd")}),
         "star_hpcs":      len([h for h in hpcs if (h.get("yoy_growth_pct") or 0) >= 0.3 and h.get("mtd")]),
         "critical_hpcs":  len([h for h in hpcs if (h.get("yoy_growth_pct") or 0) < -0.2 and h.get("mtd")]),
         "declining_hpcs": len([h for h in hpcs if -0.2 <= (h.get("yoy_growth_pct") or 0) < 0 and h.get("mtd")]),
@@ -1317,6 +1352,7 @@ def scorecard_history():
     ly_yr, ly_mth = curr_yr - 1, curr_mth
 
     # ── scope WHERE fragment ──────────────────────────────────────────────────
+    # ── scope WHERE fragment ──────────────────────────────────────────────────
     scope_clauses, scope_params = [], []
     if f.get("zone"):
         scope_clauses.append("s.zone = ?")
@@ -1327,8 +1363,19 @@ def scorecard_history():
     if f.get("plant_code"):
         scope_clauses.append("CAST(s.plant_code AS TEXT) = ?")
         scope_params.append(str(f["plant_code"]))
+        
+    milk_type = request.args.get('milk_type', '')
+    milk_type_clause = ""
+    milk_type_param  = []
+    if milk_type and milk_type != 'all':
+        # Filter directly on proc_monthly_hpc/farmer.milk_type — NOT through the snapshot
+        # (snapshot is 1-row-per-HPC with no milk_type column after the fix)
+        milk_type_clause = "AND mh.milk_type = ?"
+        milk_type_param  = [milk_type]
+
     scope_and = ("AND " + " AND ".join(scope_clauses)) if scope_clauses else ""
 
+    # ── FAST SQL AGGREGATOR ───────────────────────────────────────────────────
     # ── FAST SQL AGGREGATOR ───────────────────────────────────────────────────
     def fetch_metrics(yr, mth):
         # 1. Do all math in SQL instead of looping in Python
@@ -1340,19 +1387,22 @@ def scorecard_history():
                    SUM(mh.avg_snf * mh.total_qty_ltr) / NULLIF(SUM(mh.total_qty_ltr), 0) as snf,
                    COUNT(DISTINCT mh.hpc_plant_key) as hpcs
             FROM proc_monthly_hpc mh
-            JOIN proc_period_snapshot s ON mh.hpc_plant_key = s.hpc_plant_key AND s.snapshot_date = ?
-            WHERE mh.yr = ? AND mh.mth = ? {scope_and}
-        """, [snap_date, yr, mth] + scope_params).fetchone()
+            JOIN proc_period_snapshot s ON mh.hpc_plant_key = s.hpc_plant_key
+             AND s.snapshot_date = ?
+            WHERE mh.yr = ? AND mh.mth = ? {milk_type_clause} {scope_and}
+        """, [snap_date, yr, mth] + milk_type_param + scope_params).fetchone()
 
         # 2. Optimized Farmer Count using exact index, skipping string wildcard scans
+        fmr_milk_clause = milk_type_clause.replace("mh.", "mf.") if milk_type_clause else ""
         farmer_row = conn.execute(f"""
             SELECT COUNT(DISTINCT mf.farmer_code) AS farmers
             FROM proc_monthly_farmer mf
-            JOIN proc_period_snapshot s ON mf.hpc_plant_key = s.hpc_plant_key AND s.snapshot_date = ?
+            JOIN proc_period_snapshot s ON mf.hpc_plant_key = s.hpc_plant_key
+             AND s.snapshot_date = ?
             WHERE mf.yr = ? AND mf.mth = ?
               AND mf.farmer_code_seq != '9999'
-            {scope_and}
-        """, [snap_date, yr, mth] + scope_params).fetchone()
+              {fmr_milk_clause} {scope_and}
+        """, [snap_date, yr, mth] + milk_type_param + scope_params).fetchone()
 
         total_ltr = hpc_agg["total_ltr"] or 0
         hpcs      = hpc_agg["hpcs"] or 1

@@ -314,6 +314,12 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
     <select class="sd-sel" id="gfRegion" onchange="applyFilter()"><option value="">All Regions</option></select>
     <div class="sd-lbl">Plant</div>
     <select class="sd-sel" id="gfPlant" onchange="applyFilter()"><option value="">All Plants</option></select>
+    <div class="sd-lbl">Milk Type</div>
+    <select class="sd-sel" id="gfMilk" onchange="applyFilter()">
+      <option value="">All Milk</option>
+      <option value="Cow">Cow</option>
+      <option value="Buffalo">Buffalo</option>
+    </select>
     <button class="sd-clear" id="sdClear" onclick="clearFilter()">Clear filter</button>
   </div>
   <div class="h-right">
@@ -589,7 +595,7 @@ const CL = {
   muted:'#64748b',
 };
 
-let D=null, charts={}, gF={zone:'',region:'',plant_code:''};
+let D=null, charts={}, gF={zone:'',region:'',plant_code:'', milk:''};
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 function fmtDate(d){ if(!d||d.length<10) return d; const yr=d.slice(2,4), mo=parseInt(d.slice(5,7),10)-1, day=parseInt(d.slice(8,10),10); return day===1 ? MONTHS[mo]+' \''+yr : day+' '+MONTHS[mo]; }
@@ -620,16 +626,52 @@ function spill(r){
 }
 
 function dc(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
-function filt(a) {
-  const z = gF.zone, r = gF.region, p = String(gF.plant_code || '');
-  if (!z && !r && !p) return a;
-  
-  return a.filter(x => 
-    (!z || x.zone === z) && 
-    (!r || x.region === r) && 
-    (!p || String(x.plant_code || '') === p) // Forces both sides to be strings
+
+function filt(a, skipPlant = false) {
+  const z = gF.zone, r = gF.region, p = String(gF.plant_code || ''), m = gF.milk;
+  if (!z && !r && !p && !m) return a;
+
+  return a.filter(x =>
+    (!z || x.zone === z) &&
+    (!r || x.region === r) &&
+    (!p || skipPlant || String(x.plant_code || '') === p) &&
+    // Safely bypass milk filter for tables that don't have a milk_type
+    (!m || !x.hasOwnProperty('milk_type') || !x.milk_type || String(x.milk_type) === m)
   );
 }
+
+// ── MILK-AWARE HPC LIST ──────────────────────────────────────────────────────
+// Root problem: hpc_list is 1-row-per-HPC with no milk_type (correct for Bug 3 fix).
+// So filt(D.hpc_list) always bypasses the milk filter → HPC count, MTD, farmer
+// count KPIs never change when milk is selected.
+//
+// Fix: when milk filter is active, override each hpc_list row's volume metrics
+// with milk-type-specific values from monthly_hpc, and drop HPCs that don't
+// produce the selected milk type. Zone/region/plant filtering still comes from filt().
+function getEffectiveHpcList() {
+  const baseHpcs = filt(D.hpc_list);     // zone/region/plant filtered; milk bypass is intentional
+  if (!gF.milk) return baseHpcs;          // no milk filter — fast path, unchanged behaviour
+
+  const snapDay = parseInt((D.snapshot.snapshot_date || '').slice(8, 10), 10) || 1;
+  const mhpc    = filt(D.monthly_hpc);   // correctly filtered by milk + zone/region/plant
+  const milkMap = new Map(mhpc.map(r => [r.hpc_plant_key, r]));
+
+  return baseHpcs
+    .filter(h => milkMap.has(h.hpc_plant_key))   // only HPCs that produce this milk type
+    .map(h => {
+      const m = milkMap.get(h.hpc_plant_key);
+      return {
+        ...h,
+        mtd:         Math.round((m.total_qty_ltr / snapDay) * 10) / 10, // milk-specific LPD
+        mtd_avg_fat: m.avg_fat,
+        mtd_rate:    m.avg_rate_per_ltr,
+        mtd_payout:  m.total_net_price,
+        // lm/lmtd/lymtd/yoy_growth_pct/mom_growth_pct stay from hpc_list (all-milk, approximate)
+        // — the Scorecard tab hits /api/scorecard/history which correctly scopes by milk_type
+      };
+    });
+}
+
 function sF(a,k){return a.reduce((s,r)=>s+(Number(r[k])||0),0);}
 function aF(a,k){const f=a.filter(r=>r[k]!=null);return f.length?sF(f,k)/f.length:null;}
 function wv(a,v,w){const ws=sF(a,w);return ws?a.reduce((s,r)=>s+(Number(r[v])||0)*(Number(r[w])||0),0)/ws:null;}
@@ -765,16 +807,21 @@ function applyFilter() {
   gF.zone = document.getElementById('gfZone').value;
   gF.region = document.getElementById('gfRegion').value;
   gF.plant_code = document.getElementById('gfPlant').value;
+  gF.milk = document.getElementById('gfMilk').value; // <-- GET MILK VALUE
   
-  // Update dropdown limits based on new selections
   updateFilterOptions();
 
   const active = Object.values(gF).some(v => v);
   
-  // Create a nice label using the Plant Name (instead of just the code)
   const pTxt = document.getElementById('gfPlant').options[document.getElementById('gfPlant').selectedIndex]?.text;
   const pLabel = (pTxt && pTxt !== 'All Plants') ? pTxt : null;
-  const label = [gF.zone, gF.region, pLabel].filter(Boolean).join(' › ') || 'All India';
+  
+  // <-- GET MILK LABEL -->
+  const mTxt = document.getElementById('gfMilk').options[document.getElementById('gfMilk').selectedIndex]?.text;
+  const mLabel = (mTxt && mTxt !== 'All Milk') ? mTxt : null;
+
+  // <-- ADD TO JOIN ARRAY -->
+  const label = [gF.zone, gF.region, pLabel, mLabel].filter(Boolean).join(' › ') || 'All India';
   
   document.getElementById('scopeLabel').textContent = label;
   document.getElementById('fbChip').classList.toggle('on', active);
@@ -788,11 +835,10 @@ function applyFilter() {
 }
 
 function clearFilter() {
-  // Clear all selections and re-apply
-  ['gfZone','gfRegion','gfPlant'].forEach(id => document.getElementById(id).value = '');
+  // <-- ADD 'gfMilk' TO THIS ARRAY -->
+  ['gfZone','gfRegion','gfPlant','gfMilk'].forEach(id => document.getElementById(id).value = '');
   applyFilter();
 }
-
 
 /* TABS */
 function switchTab(n){
@@ -815,19 +861,25 @@ function renderTab(n){
 /* OVERVIEW */
 /* OVERVIEW */
 function renderOverview(){
-  const hpcs=filt(D.hpc_list), mhpc=filt(D.monthly_hpc);
+  const hpcs=getEffectiveHpcList(), mhpc=filt(D.monthly_hpc);
+  const uniqueHpcs = [...new Map(hpcs.map(h=>[h.hpc_plant_key,h])).values()];
   const hasScope = D.user && D.user.role !== 'cxo' && D.user.role !== 'admin';
   const isF = Object.values(gF).some(v=>v) || hasScope;
+  // Milk-specific farmer count: hpc_list.mtd_farmers is per-HPC total (all milk types).
+  // When milk is filtered, use farmer_rfm which correctly carries milk_type.
+  const activeFarmers = gF.milk
+    ? filt(D.farmer_rfm||[]).filter(f=>f.tier!=='Dormant'&&f.tier!=='Churned').length
+    : (isF ? sF(hpcs,'mtd_farmers') : D.snapshot.total_farmers);
   let snap;
-  if(!isF){snap={...D.snapshot,_pay:D.snapshot.total_payout};}
+  if(!isF){snap={...D.snapshot,_pay:D.snapshot.total_payout,total_farmers:activeFarmers};}
   else{
     const mtd=sF(hpcs,'mtd'),ly=sF(hpcs,'lymtd'),lm=sF(hpcs,'lmtd');
     snap={snapshot_date:D.snapshot.snapshot_date,mtd,lymtd:ly,lmtd:lm,
       yoy_pct:ly?+((mtd-ly)/ly*100).toFixed(1):0,
       mom_pct:lm?+((mtd-lm)/lm*100).toFixed(1):0,
-      total_farmers:sF(hpcs,'mtd_farmers'),lm_farmers:sF(hpcs,'lm_farmers'),
-      total_hpcs:hpcs.length,dark_hpcs:hpcs.filter(h=>!h.mtd||h.mtd==0).length,
-      star_hpcs:hpcs.filter(h=>(h.yoy_growth_pct||0)>=0.3&&h.mtd>0).length,
+      total_farmers:activeFarmers,lm_farmers:gF.milk?0:sF(hpcs,'lm_farmers'),
+      total_hpcs:uniqueHpcs.length,dark_hpcs:uniqueHpcs.filter(h=>!h.mtd||h.mtd==0).length,
+      star_hpcs:uniqueHpcs.filter(h=>(h.yoy_growth_pct||0)>=0.3&&h.mtd>0).length,
       _pay:sF(mhpc,'total_net_price')};
   }
   document.getElementById('hDate').textContent='Data as of '+( snap.snapshot_date||'—');
@@ -937,13 +989,17 @@ function switchHpcView(v){
 }
 
 function renderHpc(){
-  const hpcs=filt(D.hpc_list), fh=filt(D.farmer_health||[]);
+  const hpcs=getEffectiveHpcList(), fh=filt(D.farmer_health||[]);
   const dark=hpcs.filter(h=>!h.mtd||h.mtd==0).length;
   const crit=hpcs.filter(h=>(h.yoy_growth_pct||0)<-0.3&&h.mtd>0).length;
   const star=hpcs.filter(h=>(h.yoy_growth_pct||0)>=0.3&&h.mtd>0).length;
   const grow=hpcs.filter(h=>(h.yoy_growth_pct||0)>=0&&(h.yoy_growth_pct||0)<0.3&&h.mtd>0).length;
   const decl=hpcs.filter(h=>(h.yoy_growth_pct||0)<0&&(h.yoy_growth_pct||0)>=-0.3).length;
-  const totalF=hpcs.reduce((s,h)=>s+(h.mtd_farmers||0),0);
+  // Milk-aware farmer count: hpc_list.mtd_farmers is all-milk per-HPC total.
+  // When milk is filtered, read from farmer_rfm which has correct milk_type.
+  const totalF = gF.milk
+    ? filt(D.farmer_rfm||[]).filter(f=>f.tier!=='Dormant'&&f.tier!=='Churned').length
+    : hpcs.reduce((s,h)=>s+(h.mtd_farmers||0),0);
   const stableF=fh.filter(h=>h.segment==='Stable'||h.segment==='Growing').length;
 
   document.getElementById('hpcKpis').innerHTML=[
@@ -962,12 +1018,15 @@ function renderHpc(){
   renderHpcTable();
 }
 
+
+
+
 function renderHpcTable(){
   const sf=document.getElementById('hpcStat').value;
   const rf=document.getElementById('hpcReg').value;
   const sr=document.getElementById('hpcSrch').value.toLowerCase();
   
-  let hpcs=filt(D.hpc_list);
+  let hpcs=getEffectiveHpcList();
   
   // 1. Apply Status & Region Dropdowns
   if(sf) hpcs=hpcs.filter(h=>{
@@ -1040,7 +1099,7 @@ function renderHpcTable(){
       const repHtml = (r.hpr_name || r.mobile_no) ? `<div style="margin-top:8px; font-size:10.5px; color:var(--muted); display:flex; align-items:center; gap:6px;"><span>👤 ${r.hpr_name||'N/A'}</span>${r.mobile_no ? `<a href="tel:${r.mobile_no}" style="color:var(--brand);text-decoration:none;background:var(--brand-lt);padding:2px 6px;border-radius:4px;border:1px solid var(--brand-bdr);font-weight:700;" onclick="event.stopPropagation()">📞 ${r.mobile_no}</a>` : ''}</div>` : '';
       
       return`<tr class="${cl}" onclick="openPanel('${r.hpc_plant_key}')">
-        <td><strong>${r.hpc_name||'—'}</strong><div class="mono" style="font-size:10px;color:var(--muted)">${r.hpc_plant_key}</div>${repHtml}</td>
+        <td><strong>${r.hpc_name||'—'}</strong> <span class="b b-m" style="padding:1px 4px;font-size:9px">${r.milk_type||'N/A'}</span><div class="mono" style="font-size:10px;color:var(--muted)">${r.hpc_plant_key}</div>${repHtml}</td>
         <td>${r.region||'—'}</td><td style="color:var(--muted)">${r.zone||'—'}</td><td><strong>${F.n(r.mtd)}</strong></td><td>${F.n(r.lm)}</td><td>${F.n(r.lymtd)}</td><td>${gb(r.yoy_growth_pct)}</td><td>${gb(r.mom_growth_pct)}</td><td style="color:var(--amber)">${F.f3(r.mtd_avg_fat)}</td><td>₹${F.f2(r.mtd_rate)}</td><td>${spill(r)}</td>
       </tr>`;
     }).join('')||'<tr><td colspan="11" style="text-align:center;padding:28px;color:var(--muted)">No centers match filter</td></tr>';
@@ -1053,7 +1112,7 @@ function renderHpcTable(){
       const repHtml = (r.hpr_name || r.mobile_no) ? `<div style="margin-top:8px; font-size:10.5px; color:var(--muted); display:flex; align-items:center; gap:6px;"><span>👤 ${r.hpr_name||'N/A'}</span>${r.mobile_no ? `<a href="tel:${r.mobile_no}" style="color:var(--brand);text-decoration:none;background:var(--brand-lt);padding:2px 6px;border-radius:4px;border:1px solid var(--brand-bdr);font-weight:700;" onclick="event.stopPropagation()">📞 ${r.mobile_no}</a>` : ''}</div>` : '';
       
       return`<tr onclick="openPanel('${r.hpc_plant_key}')">
-        <td><strong>${r.hpc_name||'—'}</strong><div class="mono" style="font-size:10px;color:var(--muted)">${r.hpc_plant_key}</div>${repHtml}</td>
+        <td><strong>${r.hpc_name||'—'}</strong> <span class="b b-m" style="padding:1px 4px;font-size:9px">${r.milk_type||'N/A'}</span><div class="mono" style="font-size:10px;color:var(--muted)">${r.hpc_plant_key}</div>${repHtml}</td>
         <td>${r.region||'—'}</td><td style="color:var(--muted)">${r.zone||'—'}</td><td><strong>${F.n(r.mtd_farmers)}</strong></td><td>${F.n(r.lm_farmers)}</td><td><span class="b ${chgCl}">${chg>=0?'+':''}${F.n(chg)}</span></td><td>${fh?F.n(fh.consistent):'—'}</td><td>${fh?(fh.irregular||0)>0?`<span style="color:var(--amber)">${F.n(fh.irregular)}</span>`:'—':'—'}</td><td ${attrCl}>${fh?F.f1(attrPct)+'%':'—'}</td><td>${fh?`<span style="color:var(--green)">+${F.n(fh.acquired)}</span>`:'—'}</td><td>${fh?`<span style="color:var(--red)">-${F.n(fh.churned)}</span>`:'—'}</td><td>${fh?`<span class="pill ${segClass}">${fh.segment}</span>`:'—'}</td>
       </tr>`;
     }).join('')||'<tr><td colspan="12" style="text-align:center;padding:28px;color:var(--muted)">No centers match filter</td></tr>';
@@ -1362,7 +1421,7 @@ function exportCSV(tableId, filename, renderFnName, stateKey) {
    ═══════════════════════════════════════════════════════════════ */
 
 async function renderScorecard() {
-  const hpcs = filt(D.hpc_list);
+  const hpcs = getEffectiveHpcList();
   const mhpc = filt(D.monthly_hpc);
   const fh   = filt(D.farmer_health || []);
 
@@ -1374,9 +1433,19 @@ async function renderScorecard() {
 
   /* ── helper: compute the 7 KPIs from any slice ── */
   function calcMetrics(hList, mList, fList) {
+    const hpcMap = new Map();
+    hList.forEach(h => {
+        const key = h.hpc_plant_key;
+        if (!hpcMap.has(key) || (h.mtd||0) > (hpcMap.get(key).mtd||0))
+            hpcMap.set(key, h);
+    });
+    const uniqueH = [...hpcMap.values()];
     const totL = sF(hList, 'mtd');
-    const totF = sF(hList, 'mtd_farmers');
-    const totH = hList.filter(h => h.mtd > 0).length || 1;
+    const isMilkFiltered = gF.milk && gF.milk !== 'all';
+    const totF = isMilkFiltered
+      ? filt(D.farmer_rfm||[]).filter(f=>f.tier!=='Dormant'&&f.tier!=='Churned').length
+      : sF(uniqueH, 'mtd_farmers_total');
+    const totH = uniqueH.filter(h => h.mtd > 0).length || 1;
     return {
       farmerProductivity: totF > 0 ? totL / totF : 0,
       hpcProductivity   : totL / totH,
@@ -1451,6 +1520,7 @@ async function renderScorecard() {
     if (gF.zone)       params.append('zone',       gF.zone);
     if (gF.region)     params.append('region',     gF.region);
     if (gF.plant_code) params.append('plant_code', gF.plant_code);
+    if (gF.milk)       params.append('milk_type',  gF.milk);
     const res = await fetch('/api/scorecard/history?' + params.toString());
     if (res.ok) {
       const data = await res.json();

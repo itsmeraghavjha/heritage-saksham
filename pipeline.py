@@ -118,7 +118,14 @@ SELECT
     CAST([Vendor] AS VARCHAR(20))                                         AS farmer_code,
     CAST([Farmer Code] AS VARCHAR(10))                                    AS farmer_code_seq,
     [Farmer Name]                                                         AS farmer_name,
-    [Milk Type]                                                           AS milk_type,
+    -- BUG 1 FIX: was reading [Milk Type] (numeric: 1,2) which stored '1'/'2' in parquets.
+    -- Now reads [Milk Type Desc] (text: CGM=Cow, BGM=Buffalo) and maps to UI labels.
+    -- The UI dropdown sends 'Cow'/'Buffalo' so the DB values must match exactly.
+    CASE [Milk Type Desc]
+        WHEN 'CGM' THEN 'Cow'
+        WHEN 'BGM' THEN 'Buffalo'
+        ELSE ISNULL(CAST([Milk Type Desc] AS VARCHAR(20)), 'Unknown')
+    END AS milk_type,
     CAST([QTY(LTR)]        AS FLOAT)                                      AS qty_ltr,
     CAST([QTY(KG)]         AS FLOAT)                                      AS qty_kg,
     CAST([FAT]             AS FLOAT)                                      AS fat,
@@ -273,6 +280,7 @@ def build_month(yr, mth, conn=None, duck=None, progress_cb=None):
                 proc_date,
                 CAST(shift AS VARCHAR)   AS shift,
                 hpc_plant_key,
+                milk_type,
                 MAX(hpc_code)            AS hpc_code,
                 MAX(plant_code)          AS plant_code,
                 MAX(hpc_name)            AS hpc_name,
@@ -300,7 +308,7 @@ def build_month(yr, mth, conn=None, duck=None, progress_cb=None):
                 ROUND(SUM(net_price) / NULLIF(SUM(fat_kg), 0), 4)         AS cost_per_fat_kg,
                 SUM(CASE WHEN fat < 3.5 OR snf < 8.0 THEN 1 ELSE 0 END)  AS quality_incidents
             FROM month_raw
-            GROUP BY proc_date, CAST(shift AS VARCHAR), hpc_plant_key
+            GROUP BY proc_date, CAST(shift AS VARCHAR), hpc_plant_key, milk_type
         """).df()
 
         conn.execute(
@@ -321,6 +329,7 @@ def build_month(yr, mth, conn=None, duck=None, progress_cb=None):
                     {yr}  AS yr,
                     {mth} AS mth,
                     hpc_plant_key,
+                    milk_type,
                     MAX(hpc_code)     AS hpc_code,
                     MAX(plant_code)   AS plant_code,
                     MAX(hpc_name)     AS hpc_name,
@@ -348,7 +357,7 @@ def build_month(yr, mth, conn=None, duck=None, progress_cb=None):
                     ROUND(SUM(CASE WHEN CAST(shift AS VARCHAR)='1' THEN qty_ltr ELSE 0 END),2) AS morning_ltr,
                     ROUND(SUM(CASE WHEN CAST(shift AS VARCHAR)='2' THEN qty_ltr ELSE 0 END),2) AS evening_ltr
                 FROM month_raw
-                GROUP BY hpc_plant_key
+                GROUP BY hpc_plant_key, milk_type
             )
             SELECT *,
                 ROUND(total_qty_ltr / {days_total}.0, 3)                              AS lpd,
@@ -413,7 +422,7 @@ def build_month(yr, mth, conn=None, duck=None, progress_cb=None):
         quality = duck.execute("""
             SELECT
                 proc_date, hpc_plant_key, hpc_code, plant_code,
-                farmer_code, region, zone,
+                farmer_code, region, zone, milk_type,
                 fat, snf, qty_ltr, dumping_amt,
                 CASE
                     WHEN fat < 3.5 THEN 'LOW_FAT'
@@ -592,7 +601,11 @@ def build_snapshot(conn=None, progress_cb=None):
 
     sql = f"""
     WITH
-    -- All HPCs seen in last 3 months (avoids inflating dark count with old closed HPCs)
+    -- All HPCs seen in last 3 months (avoids inflating dark count with old closed HPCs).
+    -- NOTE: partitioned by hpc_plant_key only — NOT milk_type — so old parquets that
+    -- pre-date the milk_type column (where milk_type IS NULL) are NOT excluded.
+    -- The snapshot grain is one row per HPC; milk_type breakdown lives in
+    -- proc_daily_hpc / proc_monthly_hpc which the frontend queries for the filter.
     hpc_dim AS (
         SELECT hpc_plant_key, hpc_code, plant_code, hpc_name, plant_name,
                area, region_code, region, zone
@@ -606,7 +619,7 @@ def build_snapshot(conn=None, progress_cb=None):
             WHERE DATE(proc_date) >= DATE('{snap_date}', '-3 months')
         ) t WHERE rn = 1
     ),
-    -- Current month to date
+    -- Current month to date (aggregated across ALL milk types per HPC)
     mtd AS (
         SELECT hpc_plant_key,
             SUM(qty_ltr) / {day_num}.0                                    AS mtd,
@@ -621,9 +634,9 @@ def build_snapshot(conn=None, progress_cb=None):
     -- Full last month (for absolute reference and MoM rate comparison)
     lm AS (
         SELECT hpc_plant_key,
-            SUM(qty_ltr) / {lm_days}.0                                    AS lm,
-            SUM(farmer_count) / {lm_days}.0                               AS lm_farmers,
-            SUM(total_net_price)/NULLIF(SUM(qty_ltr),0)                  AS lm_rate
+            SUM(qty_ltr) / {lm_days}.0                          AS lm,
+            SUM(farmer_count) / {lm_days}.0                     AS lm_farmers,
+            SUM(total_net_price)/NULLIF(SUM(qty_ltr),0)         AS lm_rate
         FROM proc_daily_hpc
         WHERE DATE(proc_date) BETWEEN '{prev_start}' AND '{prev_end}'
         GROUP BY hpc_plant_key
@@ -631,8 +644,8 @@ def build_snapshot(conn=None, progress_cb=None):
     -- Last month same day count (fair MoM comparison — same number of days)
     lmtd AS (
         SELECT hpc_plant_key,
-            SUM(qty_ltr) / {day_num}.0                                    AS lmtd,
-            SUM(farmer_count) / {day_num}.0                               AS lmtd_farmers
+            SUM(qty_ltr) / {day_num}.0                          AS lmtd,
+            SUM(farmer_count) / {day_num}.0                     AS lmtd_farmers
         FROM proc_daily_hpc
         WHERE DATE(proc_date) BETWEEN '{prev_start}' AND '{lmtd_end}'
         GROUP BY hpc_plant_key
@@ -650,7 +663,7 @@ def build_snapshot(conn=None, progress_cb=None):
     -- Last year full same month
     lysm AS (
         SELECT hpc_plant_key,
-            SUM(qty_ltr) / {ly_sm_days}.0                                 AS lysm
+            SUM(qty_ltr) / {ly_sm_days}.0  AS lysm
         FROM proc_daily_hpc
         WHERE DATE(proc_date) BETWEEN '{date(ly_yr, curr_mth, 1)}'
                                   AND '{date(ly_yr, curr_mth, ly_sm_days)}'
@@ -1123,6 +1136,22 @@ def build_farmer_rfm(conn=None, progress_cb=None):
 # ── TABLE SETUP ───────────────────────────────────────────────────────────────
 
 def _ensure_tables(conn):
+
+    # proc_period_snapshot intentionally excluded from this migration list.
+    # The snapshot is now 1-row-per-HPC (milk_type removed from grain).
+    # The column exists in the DDL for backward compat but build_snapshot no longer writes it.
+    for table, col in [
+        ('proc_daily_hpc',         'milk_type'),
+        ('proc_monthly_hpc',       'milk_type'),
+        ('proc_quality_incidents', 'milk_type'),
+    ]:
+        try:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} TEXT")
+            conn.commit()
+            log.info(f"Migrated {table} — added {col} column")
+        except Exception:
+            pass
+
     # Migrate proc_farmer_rfm if missing plant_code column (schema was updated)
     rfm_cols = [r[1] for r in conn.execute(
         "PRAGMA table_info(proc_farmer_rfm)"
@@ -1136,7 +1165,7 @@ def _ensure_tables(conn):
         CREATE TABLE IF NOT EXISTS proc_daily_hpc (
             proc_date TEXT, shift TEXT, hpc_plant_key TEXT,
             hpc_code TEXT, plant_code TEXT, hpc_name TEXT, plant_name TEXT,
-            area TEXT, region_code TEXT, region TEXT, zone TEXT, route_code TEXT,
+            area TEXT, region_code TEXT, region TEXT, zone TEXT, route_code TEXT, milk_type TEXT,
             qty_ltr REAL, qty_kg REAL, farmer_count INTEGER, delivery_count INTEGER,
             avg_fat REAL, avg_snf REAL, total_fat_kg REAL, total_snf_kg REAL,
             total_base_price REAL, total_mcc_incentive REAL, total_qty_incentive REAL,
@@ -1146,7 +1175,7 @@ def _ensure_tables(conn):
         CREATE TABLE IF NOT EXISTS proc_monthly_hpc (
             yr INTEGER, mth INTEGER, hpc_plant_key TEXT,
             hpc_code TEXT, plant_code TEXT, hpc_name TEXT, plant_name TEXT,
-            area TEXT, region_code TEXT, region TEXT, zone TEXT,
+            area TEXT, region_code TEXT, region TEXT, zone TEXT, milk_type TEXT,
             days_in_month INTEGER, active_days INTEGER, farmer_count INTEGER,
             total_qty_ltr REAL, total_qty_kg REAL,
             avg_fat REAL, avg_snf REAL, total_fat_kg REAL, total_snf_kg REAL,
@@ -1169,13 +1198,13 @@ def _ensure_tables(conn):
         );
         CREATE TABLE IF NOT EXISTS proc_quality_incidents (
             proc_date TEXT, hpc_plant_key TEXT, hpc_code TEXT, plant_code TEXT,
-            farmer_code TEXT, region TEXT, zone TEXT,
+            farmer_code TEXT, region TEXT, zone TEXT, milk_type TEXT,
             fat REAL, snf REAL, qty_ltr REAL, dumping_amt REAL, incident_type TEXT
         );
         CREATE TABLE IF NOT EXISTS proc_period_snapshot (
             snapshot_date TEXT, hpc_plant_key TEXT,
             hpc_code TEXT, plant_code TEXT, hpc_name TEXT, plant_name TEXT,
-            area TEXT, region_code TEXT, region TEXT, zone TEXT,
+            area TEXT, region_code TEXT, region TEXT, zone TEXT, milk_type TEXT,
             mtd REAL, lm REAL, lmtd REAL, lymtd REAL, lysm REAL,
             mtd_farmers REAL, lm_farmers REAL, lmtd_farmers REAL, lymtd_farmers REAL,
             mtd_avg_fat REAL, lymtd_avg_fat REAL,
@@ -1414,7 +1443,14 @@ if __name__ == "__main__":
 
     elif args.rebuild_from:
         yr, mth = map(int, args.rebuild_from.split("-"))
+        # BUG 2 FIX: --rebuild-from was skipping fetch, so any missing parquets (e.g. Feb 1-7)
+        # were never written, causing build_month to aggregate an incomplete month.
+        # Always fetch missing parquets FIRST, then rebuild summaries.
+        log.info(f"Rebuild from {yr}-{mth:02d} — fetching any missing parquets first")
+        fetch_new_data()                        # fill any gaps before rebuilding
         build_all_summaries(from_ym=(yr, mth))
+        apply_retention()
+        purge_old_parquets()
         build_snapshot()
 
     elif args.snapshot_only:
