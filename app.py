@@ -1019,26 +1019,50 @@ def hpc_detail():
 @login_required
 @analytics_required
 def plant_trend():
+    # 1. Capture all possible filters from the frontend
     plant_code = request.args.get("plant_code", "")
-    if not plant_code:
-        return jsonify({"error": "plant_code required"}), 400
+    milk_type  = request.args.get("milk_type", "")
+    zone       = request.args.get("zone", "")
+    region     = request.args.get("region", "")
 
     conn = get_db()
-    # Fetch just the 90 rows for this specific plant
-    daily = conn.execute("""
+
+    # 2. Build a dynamic WHERE clause based on what was selected
+    clauses = ["DATE(proc_date) >= DATE('now', '-90 days')"]
+    params = []
+
+    if plant_code:
+        clauses.append("plant_code = ?")
+        params.append(plant_code)
+        
+    if milk_type and milk_type != 'all':
+        clauses.append("milk_type = ?")
+        params.append(milk_type)
+        
+    if zone:
+        clauses.append("zone = ?")
+        params.append(zone)
+        
+    if region:
+        clauses.append("region = ?")
+        params.append(region)
+
+    where_sql = " AND ".join(clauses)
+
+    # 3. Execute the dynamically filtered query
+    daily = conn.execute(f"""
         SELECT DATE(proc_date) AS proc_date,
                SUM(qty_ltr)    AS qty_ltr,
                SUM(farmer_count) AS farmers
         FROM proc_daily_hpc
-        WHERE plant_code = ?
-          AND DATE(proc_date) >= DATE('now', '-90 days')
+        WHERE {where_sql}
         GROUP BY DATE(proc_date)
         ORDER BY proc_date
-    """, (plant_code,)).fetchall()
+    """, params).fetchall()
+    
     conn.close()
 
     return jsonify([dict(r) for r in daily])
-
 # ── ADMIN: USER CRUD ──────────────────────────────────────────────────────────
 
 @app.route("/api/admin/users")

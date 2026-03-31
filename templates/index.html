@@ -6,14 +6,16 @@
 <title>Heritage Procurement Intelligence</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&family=Lato:ital,wght@0,300;0,400;0,700;1,300&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
 <style>
 :root{
   /* Heritage Foods Brand Colors */
-  --brand:     #1a7a3c;
-  --brand-dk:  #145c2d;
-  --brand-lt:  #eef7f1;
-  --brand-md:  rgba(26,122,60,.1);
-  --brand-bdr: rgba(26,122,60,.2);
+  --brand:     #2DA846;
+  --brand-dk:  #228235;  /* Darker shade for hover states */
+  --brand-lt:  #eaf6ec;  /* Very light tint for backgrounds */
+  --brand-md:  rgba(45, 168, 70, 0.1);
+  --brand-bdr: rgba(45, 168, 70, 0.2);
   --red:       #C41230;
   --red-dk:    #9e0e26;
   --red-lt:    #fdf0f2;
@@ -79,11 +81,27 @@ body {
 .boot-track { width: 220px; height: 2px; background: rgba(255,255,255,.2); border-radius: 2px; overflow: hidden; margin: 0 auto; }
 .boot-fill { height: 100%; background: #fff; border-radius: 2px; width: 0; transition: width .35s ease; }
 .boot-msg { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 12px; }
+.boot-logo-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px; /* Pushes the text down slightly */
+}
+
+.boot-logo-img {
+  height: 64px; /* Noticeably larger than the header logo (36px) */
+  width: auto;
+  max-width: 80vw; /* Keeps it safe on small mobile screens */
+  object-fit: contain;
+  background: #ffffff; /* White card background */
+  padding: 8px 20px;   /* Extra breathing room */
+  border-radius: 12px; /* Slightly softer corners for the big screen */
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2); /* Deep floating shadow */
+}
 
 /* HEADER */
 header { background: var(--brand); height: 58px; display: flex; align-items: center; padding: 0 28px; gap: 20px; position: sticky; top: 0; z-index: 200; box-shadow: 0 2px 12px rgba(26,122,60,.35); }
-.h-brand { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-.h-logo-box { width: 34px; height: 34px; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.2); border-radius: 7px; display: grid; place-items: center; }
+/* .h-brand { display: flex; align-items: center; gap: 12px; flex-shrink: 0; } */
+/* .h-logo-box { width: 34px; height: 34px; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.2); border-radius: 7px; display: grid; place-items: center; } */
 .h-logo-h { font-family: var(--font-head); font-size: 18px; font-weight: 800; color: #fff; }
 .h-brand-name { font-family: var(--font-head); font-size: 14px; font-weight: 700; color: #fff; letter-spacing: .01em; line-height: 1.2; }
 .h-brand-sub { font-size: 9.5px; color: rgba(255,255,255,.55); letter-spacing: .1em; text-transform: uppercase; }
@@ -93,6 +111,37 @@ header { background: var(--brand); height: 58px; display: flex; align-items: cen
 .h-scope-arr { font-size: 9px; color: rgba(255,255,255,.4); }
 .h-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
 .h-date { font-size: 11px; color: rgba(255,255,255,.45); font-family: var(--font-body); font-weight: 300; letter-spacing: .03em; }
+
+.h-brand { 
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+  flex-shrink: 0; 
+}
+
+/* This box strictly limits the logo size and gives it a clean background */
+.h-logo-box { 
+  height: 36px; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  background: #ffffff; /* Crisp white background so the logo pops */
+  padding: 4px 10px;   /* Breathing room around the image */
+  border-radius: 8px;  /* Soft, modern corners */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15); /* Subtle depth */
+}
+
+/* The actual image is forced to obey the box */
+.header-logo {
+  max-height: 24px;    /* Keeps the image height strictly under control */
+  width: auto;         /* Allows natural horizontal scaling */
+  max-width: 120px;    /* Failsafe to prevent horizontal blowouts */
+  object-fit: contain; 
+  display: block;
+}
+
+.h-brand-name { font-family: var(--font-head); font-size: 14px; font-weight: 700; color: #fff; letter-spacing: .01em; line-height: 1.2; }
+.h-brand-sub { font-size: 9.5px; color: rgba(255,255,255,.55); letter-spacing: .1em; text-transform: uppercase; }
 
 /* SCOPE DROPDOWN */
 .scope-drop { position: absolute; top: 58px; left: 28px; width: 268px; background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 var(--radius-lg) var(--radius-lg); box-shadow: var(--shadow-md); padding: 18px; z-index: 190; opacity: 0; transform: translateY(-6px); pointer-events: none; transition: all .2s ease; }
@@ -276,7 +325,9 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
 .bench-table tr:hover td { background: var(--surface2); }
 .bench-table .metric-cell { font-weight: 600; color: var(--ink); }
 .bench-table .highlight-cell { background: var(--brand-lt); font-weight: 700; color: var(--brand); }
-
+#ovKpis { grid-template-columns: repeat(4, 1fr) !important; }
+@media(max-width: 1100px) { #ovKpis { grid-template-columns: repeat(2, 1fr) !important; } }
+@media(max-width: 650px) { #ovKpis { grid-template-columns: 1fr 1fr !important; } }
 
 </style>
 </head>
@@ -284,8 +335,14 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
 
 <div id="boot">
   <div class="boot-inner">
+    
+    <div class="boot-logo-wrapper">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Heritage Logo" class="boot-logo-img">
+    </div>
+
     <div class="boot-brand">Heritage Foods Ltd.</div>
-    <div class="boot-logo-text">PROCUREMENT</div>
+    
+    <div class="boot-logo-text">MILK PROCUREMENT</div>
     <div class="boot-logo-sub">Intelligence Portal</div>
     <div class="boot-count" id="bcount">0</div>
     <div class="boot-count-label" id="bclbl">HPCs loading</div>
@@ -296,32 +353,37 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
 
 <header>
   <div class="h-brand">
-    <div class="h-logo-box"><div class="h-logo-h">H</div></div>
-    <div class="h-brand-text">
-      <div class="h-brand-name">Heritage Foods</div>
-      <div class="h-brand-sub">Procurement Intelligence</div>
-    </div>
+  <div class="h-logo-box">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="Heritage Logo" class="header-logo">
   </div>
+  <div class="h-brand-text">
+    <div class="h-brand-name">Heritage Foods</div>
+    <div class="h-brand-sub">Procurement Intelligence</div>
+  </div>
+</div>
   <div class="h-sep"></div>
   <button class="h-scope" id="scopeBtn" onclick="toggleScope()">
     <span id="scopeLabel">All India</span>
     <span class="h-scope-arr">▾</span>
   </button>
   <div class="scope-drop" id="scopeDrop">
-    <div class="sd-lbl">Zone</div>
-    <select class="sd-sel" id="gfZone" onchange="applyFilter()"><option value="">All Zones</option></select>
-    <div class="sd-lbl">Region</div>
-    <select class="sd-sel" id="gfRegion" onchange="applyFilter()"><option value="">All Regions</option></select>
-    <div class="sd-lbl">Plant</div>
-    <select class="sd-sel" id="gfPlant" onchange="applyFilter()"><option value="">All Plants</option></select>
-    <div class="sd-lbl">Milk Type</div>
-    <select class="sd-sel" id="gfMilk" onchange="applyFilter()">
-      <option value="">All Milk</option>
-      <option value="Cow">Cow</option>
-      <option value="Buffalo">Buffalo</option>
-    </select>
-    <button class="sd-clear" id="sdClear" onclick="clearFilter()">Clear filter</button>
-  </div>
+  <div class="sd-lbl">Zone</div>
+  <select class="sd-sel" id="gfZone" onchange="applyFilter('zone')"><option value="">All Zones</option></select>
+  
+  <div class="sd-lbl">Region</div>
+  <select class="sd-sel" id="gfRegion" onchange="applyFilter('region')"><option value="">All Regions</option></select>
+  
+  <div class="sd-lbl">Plant</div>
+  <select class="sd-sel" id="gfPlant" onchange="applyFilter('plant')"><option value="">All Plants</option></select>
+  
+  <div class="sd-lbl">Milk Type</div>
+  <select class="sd-sel" id="gfMilk" onchange="applyFilter('milk')">
+    <option value="">All Milk</option>
+    <option value="Cow">Cow</option>
+    <option value="Buffalo">Buffalo</option>
+  </select>
+  <button class="sd-clear" id="sdClear" onclick="clearFilter()">Clear filter</button>
+</div>
   <div class="h-right">
     <div class="h-date" id="hDate">—</div>
     <div class="h-user" id="hUser" style="display:flex;align-items:center;gap:8px">
@@ -351,7 +413,7 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
     <button class="tab" onclick="switchTab('overview')"><span class="tab-icon">📊</span> Overview</button>
     <button class="tab" onclick="switchTab('hpc')"><span class="tab-icon">🏭</span> HPC Drilldown</button>
     <button class="tab" onclick="switchTab('farmers')"><span class="tab-icon">👨‍🌾</span> Farmer Analytics</button>
-    <button class="tab" id="tabQuality" onclick="switchTab('quality')"><span class="tab-icon">🧪</span> Quality &amp; Cost</button>
+    <!-- <button class="tab" id="tabQuality" onclick="switchTab('quality')"><span class="tab-icon">🧪</span> Quality &amp; Cost</button> -->
   </div>
 </div>
 
@@ -412,7 +474,8 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
       <table class="dt">
         <thead><tr>
           <th>Region</th><th>Zone</th><th>MTD L/Day</th><th>vs Last Mth</th><th>vs Last Year</th>
-          <th>Farmers</th><th>Dark HPCs</th><th>Avg FAT%</th><th>Payout</th>
+          <!-- <th>Farmers</th><th>Dark HPCs</th><th>Avg FAT%</th><th>Payout</th> -->
+           <th>Farmers</th><th>Dark HPCs</th><th>Avg FAT%</th>
         </tr></thead>
         <tbody id="tbRegion"></tbody>
       </table>
@@ -436,12 +499,7 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
     <button class="hpc-sub-tab on" id="hstVolume" onclick="switchHpcView('volume')" style="padding:10px 24px;background:none;border:none;font-family:var(--font-head);font-size:13px;font-weight:700;color:var(--brand);border-bottom:2px solid var(--brand);margin-bottom:-2px;cursor:pointer;letter-spacing:.02em">📦 Volume &amp; Growth</button>
     <button class="hpc-sub-tab" id="hstFarmer" onclick="switchHpcView('farmer')" style="padding:10px 24px;background:none;border:none;font-family:var(--font-head);font-size:13px;font-weight:700;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;letter-spacing:.02em">👨‍🌾 Farmer Strength</button>
   </div>
-  <div class="toolbar" style="margin-bottom:16px">
-    <select class="t-sel" id="hpcStat" onchange="resetPage('hpc'); renderHpcTable()">
-      <option value="">All Status</option><option value="star">⭐ Star (YoY &gt;30%)</option><option value="growing">📈 Growing</option><option value="declining">📉 Declining</option><option value="critical">🔴 Critical (&lt;-30%)</option><option value="dark">⚫ Gone Dark</option>
-    </select>
-    <select class="t-sel" id="hpcReg" onchange="resetPage('hpc'); renderHpcTable()"><option value="">All Regions</option></select>
-  </div>
+
   <div class="tbl-card">
     <div class="tbl-toolbar">
       <input class="tbl-srch" id="hpcSrch" placeholder="Search all columns…" oninput="resetPage('hpc'); renderHpcTable()">
@@ -470,8 +528,21 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
 
 <div class="page" id="pg-farmers">
   <div class="kpi-row" id="fmrKpis"><div class="loading"><div class="spin"></div></div></div>
+  
   <div id="rfmAnalysis" style="margin-bottom:24px">
     <div id="rfmTierCards" style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px"></div>
+    
+    <div class="card" style="margin-bottom: 24px;">
+      <div class="card-head" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div class="c-title">Farmer Volume Distribution</div>
+          <div class="c-sub">Active farmers bucketed by Litres Per Day (LPD)</div>
+        </div>
+        <button class="tbl-export" onclick="exportLpdBuckets()">⬇ Export Farmer Data</button>
+      </div>
+      <div class="c-body"><div class="ch h240"><canvas id="cLpdBuckets"></canvas></div></div>
+    </div>
+
     <div class="g2">
       <div class="card">
         <div class="card-head"><div><div class="c-title">RFM Tier Distribution</div><div class="c-sub">Farmers by engagement &amp; value tier</div></div></div>
@@ -483,12 +554,14 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
       </div>
     </div>
   </div>
+  
   <div class="toolbar" style="margin-bottom:16px">
     <select class="t-sel" id="rfmF" onchange="resetPage('farmers'); renderFarmerTable()">
       <option value="recovery">⚡ At Risk + Dormant — Recovery</option><option value="Champion">🥇 Champion</option><option value="Loyal">🌱 Loyal</option><option value="At Risk">⚠️ At Risk</option><option value="Dormant">💤 Dormant</option><option value="Churned">🔴 Churned</option><option value="">All Farmers</option>
     </select>
     <select class="t-sel" id="fReg" onchange="resetPage('farmers'); renderFarmerTable()"><option value="">All Regions</option></select>
   </div>
+  
   <div class="tbl-card">
     <div class="tbl-toolbar">
       <input class="tbl-srch" id="srchFarmer" placeholder="Search all columns…" oninput="resetPage('farmers'); renderFarmerTable()">
@@ -503,7 +576,8 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
         <tbody id="tbFarmer"></tbody>
       </table>
     </div>
-    <div id="pagFarmers"></div> </div>
+    <div id="pagFarmers"></div> 
+  </div>
 </div>
 
 <div class="page" id="pg-quality">
@@ -803,24 +877,59 @@ document.addEventListener('click', e => {
   if(d && b && !d.contains(e.target) && !b.contains(e.target)) d.classList.remove('open');
 });
 
-function applyFilter() {
-  gF.zone = document.getElementById('gfZone').value;
-  gF.region = document.getElementById('gfRegion').value;
-  gF.plant_code = document.getElementById('gfPlant').value;
-  gF.milk = document.getElementById('gfMilk').value; // <-- GET MILK VALUE
-  
+function applyFilter(changedLevel = null) {
+  let z = document.getElementById('gfZone').value;
+  let r = document.getElementById('gfRegion').value;
+  let p = document.getElementById('gfPlant').value;
+  let m = document.getElementById('gfMilk').value;
+
+  // AUTO-SELECT LOGIC based on what the user just clicked
+  if (changedLevel === 'plant' && p) {
+    // 1. If Plant selected, auto-fill Region and Zone
+    const hpc = (D.hpc_list || []).find(h => String(h.plant_code || '') === p);
+    if (hpc) {
+      r = hpc.region || r;
+      z = hpc.zone || z;
+      document.getElementById('gfRegion').value = r;
+      document.getElementById('gfZone').value = z;
+    }
+  } else if (changedLevel === 'region') {
+    // 2. If Region changed, auto-fill Zone, but CLEAR Plant (since old plant is invalid)
+    if (r) {
+      const hpc = (D.hpc_list || []).find(h => h.region === r);
+      if (hpc) {
+        z = hpc.zone || z;
+        document.getElementById('gfZone').value = z;
+      }
+    }
+    p = '';
+    document.getElementById('gfPlant').value = '';
+  } else if (changedLevel === 'zone') {
+    // 3. If Zone changed, clear Region and Plant
+    r = '';
+    p = '';
+    document.getElementById('gfRegion').value = '';
+    document.getElementById('gfPlant').value = '';
+  }
+
+  // Set the global filter object
+  gF.zone = z;
+  gF.region = r;
+  gF.plant_code = p;
+  gF.milk = m;
+
+  // Rebuild the options so dropdowns only show valid siblings
   updateFilterOptions();
 
+  // Handle the UI label and clear button visibility
   const active = Object.values(gF).some(v => v);
   
   const pTxt = document.getElementById('gfPlant').options[document.getElementById('gfPlant').selectedIndex]?.text;
   const pLabel = (pTxt && pTxt !== 'All Plants') ? pTxt : null;
   
-  // <-- GET MILK LABEL -->
   const mTxt = document.getElementById('gfMilk').options[document.getElementById('gfMilk').selectedIndex]?.text;
   const mLabel = (mTxt && mTxt !== 'All Milk') ? mTxt : null;
 
-  // <-- ADD TO JOIN ARRAY -->
   const label = [gF.zone, gF.region, pLabel, mLabel].filter(Boolean).join(' › ') || 'All India';
   
   document.getElementById('scopeLabel').textContent = label;
@@ -830,9 +939,12 @@ function applyFilter() {
   document.getElementById('fbAll').style.display = active ? 'none' : '';
   document.getElementById('sdClear').classList.toggle('on', active);
   
+  // Refresh the data on the active tab
   const tab = document.querySelector('.tab.on')?.getAttribute('onclick')?.match(/'(\w+)'/)?.[1] || 'overview';
   renderTab(tab);
 }
+
+
 
 function clearFilter() {
   // <-- ADD 'gfMilk' TO THIS ARRAY -->
@@ -861,62 +973,70 @@ function renderTab(n){
 /* OVERVIEW */
 /* OVERVIEW */
 function renderOverview(){
-  const hpcs=getEffectiveHpcList(), mhpc=filt(D.monthly_hpc);
+  const hpcs=getEffectiveHpcList();
   const uniqueHpcs = [...new Map(hpcs.map(h=>[h.hpc_plant_key,h])).values()];
   const hasScope = D.user && D.user.role !== 'cxo' && D.user.role !== 'admin';
   const isF = Object.values(gF).some(v=>v) || hasScope;
-  // Milk-specific farmer count: hpc_list.mtd_farmers is per-HPC total (all milk types).
-  // When milk is filtered, use farmer_rfm which correctly carries milk_type.
+  
   const activeFarmers = gF.milk
     ? filt(D.farmer_rfm||[]).filter(f=>f.tier!=='Dormant'&&f.tier!=='Churned').length
     : (isF ? sF(hpcs,'mtd_farmers') : D.snapshot.total_farmers);
+  
   let snap;
-  if(!isF){snap={...D.snapshot,_pay:D.snapshot.total_payout,total_farmers:activeFarmers};}
-  else{
+  if(!isF){
+    snap={...D.snapshot,total_farmers:activeFarmers};
+  } else {
     const mtd=sF(hpcs,'mtd'),ly=sF(hpcs,'lymtd'),lm=sF(hpcs,'lmtd');
-    snap={snapshot_date:D.snapshot.snapshot_date,mtd,lymtd:ly,lmtd:lm,
+    snap={
+      snapshot_date:D.snapshot.snapshot_date,mtd,lymtd:ly,lmtd:lm,
       yoy_pct:ly?+((mtd-ly)/ly*100).toFixed(1):0,
       mom_pct:lm?+((mtd-lm)/lm*100).toFixed(1):0,
       total_farmers:activeFarmers,lm_farmers:gF.milk?0:sF(hpcs,'lm_farmers'),
       total_hpcs:uniqueHpcs.length,dark_hpcs:uniqueHpcs.filter(h=>!h.mtd||h.mtd==0).length,
-      star_hpcs:uniqueHpcs.filter(h=>(h.yoy_growth_pct||0)>=0.3&&h.mtd>0).length,
-      _pay:sF(mhpc,'total_net_price')};
+      star_hpcs:uniqueHpcs.filter(h=>(h.yoy_growth_pct||0)>=0.3&&h.mtd>0).length
+    };
   }
   document.getElementById('hDate').textContent='Data as of '+( snap.snapshot_date||'—');
   const yOk=(snap.yoy_pct||0)>=0;
 
+  // 1. KPI Update: Removed the Payout KPI completely
   document.getElementById('ovKpis').innerHTML=[
     {icon:'📦',ibg:yOk?CL.greenlt:CL.redlt, l:'MTD Litres / Day',     v:F.n(snap.mtd),          ctx:gb(snap.yoy_pct/100,false)+' YoY',                    ac:yOk?CL.green:CL.red},
     {icon:'📈',ibg:CL.amberlt,               l:'Month on Month',       v:(function(){var p=snap.mom_pct||0;var s=p>=0?'+':'';return s+p.toFixed(1)+'%';})(),ctx:'MTD vs LMTD',                                       ac:CL.amber},
     {icon:'👨‍🌾',ibg:CL.bluelt,              l:'Active Farmers',        v:F.n(snap.total_farmers), ctx:gb((snap.total_farmers-(snap.lm_farmers||0))/Math.max(1,snap.lm_farmers||1))+' vs LM', ac:CL.blue},
-    {icon:'💰',ibg:CL.teallt,                l:'Month Payout',          v:F.cr(snap._pay),         ctx:'Total ₹ paid to farmers',                             ac:CL.teal},
     {icon:'🏭',ibg:CL.redlt,                 l:'Network',               v:F.n((snap.total_hpcs||0)-(snap.dark_hpcs||0))+' live',ctx:'<span class="b b-r">'+(snap.dark_hpcs||0)+' dark</span> &nbsp; <span class="b b-g">'+(snap.star_hpcs||0)+' star</span>', ac:(snap.dark_hpcs||0)>0?CL.red:CL.green},
   ].map(h=>`<div class="kpi" style="--k-accent:${h.ac}"><div class="k-icon" style="background:${h.ibg}">${h.icon}</div><div class="k-label">${h.l}</div><div class="k-value">${h.v}</div><div class="k-ctx">${h.ctx}</div></div>`).join('');
 
-  // ── LAZY LOADED TREND CHART ────────────────────────────────────
+  // 2. Trend Chart Update: Now fetches dynamically if Milk or Plant is selected
   async function loadTrendChart() {
     let tr = [];
     const pCode = String(gF.plant_code || '');
+    const milk = String(gF.milk || '');
 
-    if (!pCode) {
-      // 1. REGION/ZONE LEVEL: Use the fast, pre-loaded bootstrap data
-      const td = filt(D.daily, true); // true = skip plant filter
+    if (!pCode && !milk) {
+      // Use fast, pre-loaded bootstrap data when no milk/plant filter is active
+      const td = filt(D.daily, true); 
       const tbd = gby(td, 'proc_date');
       tr = Object.entries(tbd)
             .sort(([a],[b])=>a.localeCompare(b))
             .map(([d,rows])=>({d, v:sF(rows,'qty_ltr'), f:sF(rows,'farmers')}));
     } else {
-      // 2. PLANT LEVEL: Fetch specific data gracefully on demand
+      // Fetch specific filtered data from backend
       try {
-        const res = await fetch('/api/trend/plant?plant_code=' + encodeURIComponent(pCode));
+        const params = new URLSearchParams();
+        if (pCode) params.append('plant_code', pCode);
+        if (milk) params.append('milk_type', milk);
+        if (gF.zone) params.append('zone', gF.zone);
+        if (gF.region) params.append('region', gF.region);
+        
+        const res = await fetch('/api/trend/plant?' + params.toString());
         const plantData = await res.json();
         tr = plantData.map(r => ({ d: r.proc_date, v: r.qty_ltr, f: r.farmers }));
       } catch (e) {
-        console.error("Failed to fetch plant trend", e);
+        console.error("Failed to fetch trend", e);
       }
     }
 
-    // 3. Draw the chart
     dc('cTrend');
     charts['cTrend'] = new Chart(document.getElementById('cTrend').getContext('2d'), {
       type:'line',
@@ -938,45 +1058,48 @@ function renderOverview(){
       }
     });
   }
-
-  // Execute the lazy loader
   loadTrendChart();
-  // ───────────────────────────────────────────────────────────────
 
-  const zones=(D.zone_summary||[]);
-dc('cZone');
-charts['cZone']=new Chart(document.getElementById('cZone').getContext('2d'),{ type:'bar',data:{labels:zones.map(z=>z.zone),datasets:[{label:'This Year MTD', data:zones.map(z=>z.mtd),backgroundColor:CL.brand,borderRadius:5},{label:'Last Year', data:zones.map(z=>z.lymtd), backgroundColor:'rgba(26,122,60,.15)',borderRadius:5,borderWidth:1,borderColor:CL.brand}]}, options:{responsive:true,maintainAspectRatio:false, plugins:{legend:{display:true,position:'top'}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.04)'}}}} });
+  // 3. Zone Chart Update: Calculate dynamically from hpcs instead of static D.zone_summary
+  const zGrp = gby(hpcs, 'zone');
+  const zones = Object.entries(zGrp)
+    .filter(([z]) => z && z !== 'undefined')
+    .map(([zone, rows]) => ({
+      zone: zone,
+      mtd: sF(rows, 'mtd'),
+      lymtd: sF(rows, 'lymtd')
+  })).sort((a,b)=>a.zone.localeCompare(b.zone));
 
+  dc('cZone');
+  charts['cZone']=new Chart(document.getElementById('cZone').getContext('2d'),{ type:'bar',data:{labels:zones.map(z=>z.zone),datasets:[{label:'This Year MTD', data:zones.map(z=>z.mtd),backgroundColor:CL.brand,borderRadius:5},{label:'Last Year', data:zones.map(z=>z.lymtd), backgroundColor:'rgba(26,122,60,.15)',borderRadius:5,borderWidth:1,borderColor:CL.brand}]}, options:{responsive:true,maintainAspectRatio:false, plugins:{legend:{display:true,position:'top'}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.04)'}}}} });
 
+  // 4. Region Table Update: Removed payout column logic
+  const brm=gby(hpcs,'region');
+  const rsLookup={};
+  (D.region_summary||[]).forEach(r=>rsLookup[r.region]=r);
 
-  const brm=gby(hpcs,'region'), mbrm=gby(mhpc,'region');
-// Build a lookup from region_summary for correct historical LYMTD
-// (includes closed HPCs, unlike per-HPC lymtd sum from snapshot)
-const rsLookup={};
-(D.region_summary||[]).forEach(r=>rsLookup[r.region]=r);
-
-let regs=Object.entries(brm).filter(([r])=>r).map(([region,rows])=>{
-    const mr=mbrm[region]||[],mtd=sF(rows,'mtd'),lm=sF(rows,'lmtd');
-    const ly=(rsLookup[region]||{}).lymtd||0;  // correct LYMTD from direct DB query
-    return{region,zone:rows[0]?.zone||'',mtd,yoy:ly?(mtd-ly)/ly:null,mom:lm?(mtd-lm)/lm:null,farmers:sF(rows,'mtd_farmers'),dark:rows.filter(r=>!r.mtd||r.mtd==0).length,fat:wv(rows.filter(r=>r.mtd_avg_fat>0),'mtd_avg_fat','mtd'),pay:sF(mr,'total_net_price')};
-}).sort((a,b)=>b.mtd-a.mtd);
-
+  let regs=Object.entries(brm).filter(([r])=>r && r !== 'undefined').map(([region,rows])=>{
+      const mtd=sF(rows,'mtd'),lm=sF(rows,'lmtd');
+      const ly=(rsLookup[region]||{}).lymtd||0;  
+      return{region,zone:rows[0]?.zone||'',mtd,yoy:ly?(mtd-ly)/ly:null,mom:lm?(mtd-lm)/lm:null,farmers:sF(rows,'mtd_farmers'),dark:rows.filter(r=>!r.mtd||r.mtd==0).length,fat:wv(rows.filter(r=>r.mtd_avg_fat>0),'mtd_avg_fat','mtd')};
+  }).sort((a,b)=>b.mtd-a.mtd);
 
   regs = filterRows(regs, 'srchRegion');
-  regs = sortRowsByCol(regs, r => [r.region, r.zone, r.mtd, (r.mom||0)*100, (r.yoy||0)*100, r.farmers, r.dark, r.fat, r.pay], 'tbRegion');
+  regs = sortRowsByCol(regs, r => [r.region, r.zone, r.mtd, (r.mom||0)*100, (r.yoy||0)*100, r.farmers, r.dark, r.fat], 'tbRegion');
 
-  // Pagination Slice
   const totalItems = regs.length;
   const curPage = TBL_PAGES.overview;
   const pagedData = regs.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE);
 
   document.getElementById('tbRegion').innerHTML=pagedData.map(r=>{
     const cl=(r.yoy||0)<-0.2?'tr-red':(r.yoy||0)<0?'tr-amber':(r.yoy||0)>=0.3?'tr-green':'';
-    return`<tr class="${cl}"><td><strong>${r.region}</strong></td><td style="color:var(--muted)">${r.zone}</td><td><strong>${F.n(r.mtd)}</strong></td><td>${gb(r.mom)}</td><td>${gb(r.yoy)}</td><td>${F.n(r.farmers)}</td><td>${r.dark>0?`<span class="b b-r">${r.dark}</span>`:'<span style="color:var(--muted-lt)">0</span>'}</td><td style="color:${(r.fat||0)<3.5?'var(--red)':'var(--amber)'}; font-weight:${(r.fat||0)<3.5?700:400}">${F.f3(r.fat)}${(r.fat||0)<3.5?' ⚠':''}</td><td>${F.cr(r.pay)}</td></tr>`;
+    return`<tr class="${cl}"><td><strong>${r.region}</strong></td><td style="color:var(--muted)">${r.zone}</td><td><strong>${F.n(r.mtd)}</strong></td><td>${gb(r.mom)}</td><td>${gb(r.yoy)}</td><td>${F.n(r.farmers)}</td><td>${r.dark>0?`<span class="b b-r">${r.dark}</span>`:'<span style="color:var(--muted-lt)">0</span>'}</td><td style="color:${(r.fat||0)<3.5?'var(--red)':'var(--amber)'}; font-weight:${(r.fat||0)<3.5?700:400}">${F.f3(r.fat)}${(r.fat||0)<3.5?' ⚠':''}</td></tr>`;
   }).join('');
 
   document.getElementById('pagRegion').innerHTML = buildPagination(totalItems, 'overview', 'renderOverview');
 }
+
+
 /* HPC */
 let _hpcView = 'volume';
 function switchHpcView(v){
@@ -1010,11 +1133,75 @@ function renderHpc(){
     {icon:'👨‍🌾',ibg:CL.bluelt, l:'Total Farmers',        v:F.n(totalF),        ctx:`<span class="b b-g">${F.n(stableF)} stable centers</span>`, ac:CL.blue},
   ].map(h=>`<div class="kpi" style="--k-accent:${h.ac}"><div class="k-icon" style="background:${h.ibg}">${h.icon}</div><div class="k-label">${h.l}</div><div class="k-value">${h.v}</div><div class="k-ctx">${h.ctx}</div></div>`).join('');
 
-  const dOpts={responsive:true,maintainAspectRatio:false,cutout:'58%', plugins:{legend:{position:'right'}}};
-  dc('cHpcSeg'); charts['cHpcSeg']=new Chart(document.getElementById('cHpcSeg').getContext('2d'),{ type:'doughnut',data:{labels:['⭐ Star','Growing','Declining','Critical','Dark'], datasets:[{data:[star,grow,decl,crit,dark],backgroundColor:[CL.teal,CL.green,CL.amber,CL.red,'#c8c3b8'],borderWidth:2,borderColor:'#fff'}]}, options:dOpts });
-  const seg={Stable:fh.filter(h=>h.segment==='Stable').length,Growing:fh.filter(h=>h.segment==='Growing').length,'At Risk':fh.filter(h=>h.segment==='At Risk').length,Churning:fh.filter(h=>h.segment==='Churning').length};
-  dc('cFhSeg'); charts['cFhSeg']=new Chart(document.getElementById('cFhSeg').getContext('2d'),{ type:'doughnut',data:{labels:['Stable','Growing','At Risk','Churning'], datasets:[{data:[seg.Stable,seg.Growing,seg['At Risk'],seg.Churning],backgroundColor:[CL.green,CL.blue,CL.amber,CL.red],borderWidth:2,borderColor:'#fff'}]}, options:dOpts });
+  // --- REPLACED DOUGHNUT CHART BLOCK ---
+  // --- REPLACED DOUGHNUT CHART BLOCK WITH OUTSIDE LABELS ---
+  const dOpts = {
+    responsive: true, 
+    maintainAspectRatio: false, 
+    cutout: '58%',
+    layout: {
+      padding: 30 // CRITICAL: Adds space around the chart so outside labels aren't cut off
+    },
+    plugins: {
+      legend: { position: 'right' },
+      datalabels: {
+        color: '#334155', // Changed to dark grey for visibility on the white background
+        anchor: 'end',    // Anchors the label to the outer edge of the slice
+        align: 'end',     // Pushes the text outside of the slice
+        offset: 4,        // Adds a small gap between the chart and the text
+        font: { weight: 'bold', size: 10, family: "'Lato', sans-serif" },
+        textAlign: 'center',
+        // Hide label entirely if the value is 0
+        display: function(ctx) { return ctx.dataset.data[ctx.dataIndex] > 0; },
+        formatter: (value, ctx) => {
+          const sum = ctx.dataset.data.reduce((a, b) => a + b, 0);
+          const pct = (value * 100 / sum).toFixed(1) + '%';
+          return `${value}\n(${pct})`;
+        }
+      }
+    }
+  };
 
+  dc('cHpcSeg'); 
+  charts['cHpcSeg'] = new Chart(document.getElementById('cHpcSeg').getContext('2d'), { 
+    type: 'doughnut', 
+    plugins: [ChartDataLabels], 
+    data: { 
+      labels: ['⭐ Star','Growing','Declining','Critical','Dark'], 
+      datasets: [{ 
+        data: [star, grow, decl, crit, dark], 
+        backgroundColor: [CL.teal, CL.green, CL.amber, CL.red, '#c8c3b8'], 
+        borderWidth: 2, 
+        borderColor: '#fff' 
+      }] 
+    }, 
+    options: dOpts 
+  });
+
+  const seg = {
+    Stable: fh.filter(h=>h.segment==='Stable').length,
+    Growing: fh.filter(h=>h.segment==='Growing').length,
+    'At Risk': fh.filter(h=>h.segment==='At Risk').length,
+    Churning: fh.filter(h=>h.segment==='Churning').length
+  };
+
+  dc('cFhSeg'); 
+  charts['cFhSeg'] = new Chart(document.getElementById('cFhSeg').getContext('2d'), { 
+    type: 'doughnut', 
+    plugins: [ChartDataLabels], 
+    data: { 
+      labels: ['Stable','Growing','At Risk','Churning'], 
+      datasets: [{ 
+        data: [seg.Stable, seg.Growing, seg['At Risk'], seg.Churning], 
+        backgroundColor: [CL.green, CL.blue, CL.amber, CL.red], 
+        borderWidth: 2, 
+        borderColor: '#fff' 
+      }] 
+    }, 
+    options: dOpts 
+  });
+  // --- END REPLACED DOUGHNUT CHART BLOCK ---
+  // --- END REPLACED DOUGHNUT CHART BLOCK ---
   renderHpcTable();
 }
 
@@ -1022,24 +1209,11 @@ function renderHpc(){
 
 
 function renderHpcTable(){
-  const sf=document.getElementById('hpcStat').value;
-  const rf=document.getElementById('hpcReg').value;
   const sr=document.getElementById('hpcSrch').value.toLowerCase();
   
   let hpcs=getEffectiveHpcList();
   
-  // 1. Apply Status & Region Dropdowns
-  if(sf) hpcs=hpcs.filter(h=>{
-    if(sf==='dark') return !h.mtd||h.mtd==0; 
-    if(sf==='star') return (h.yoy_growth_pct||0)>=0.3&&h.mtd>0; 
-    if(sf==='critical') return (h.yoy_growth_pct||0)<-0.3; 
-    if(sf==='growing') return (h.yoy_growth_pct||0)>=0&&(h.yoy_growth_pct||0)<0.3&&h.mtd>0; 
-    if(sf==='declining') return (h.yoy_growth_pct||0)<0&&(h.yoy_growth_pct||0)>=-0.3; 
-    return true;
-  });
-  if(rf) hpcs=hpcs.filter(h=>h.region===rf);
-  
-  // 2. Apply Global Search across all relevant text columns
+  // Apply Global Search across all relevant text columns
   if(sr) hpcs=hpcs.filter(h=>
     (h.hpc_name||'').toLowerCase().includes(sr) || 
     (h.hpc_plant_key||'').toLowerCase().includes(sr) || 
@@ -1049,20 +1223,19 @@ function renderHpcTable(){
     (h.mobile_no||'').includes(sr)
   );
   
-  // 3. Apply Column Header Sorting
+  // Apply Column Header Sorting
   if (_hpcView === 'volume') {
     var st = _sortState['tbHpcV'];
     if(st && st.col >= 0) {
-      // Map the array indices to the table columns for sorting
       hpcs = sortRowsByCol(hpcs, r => [
         r.hpc_name||'', r.region||'', r.zone||'', 
         r.mtd, r.lm, r.lymtd, 
         (r.yoy_growth_pct||0)*100, (r.mom_growth_pct||0)*100, 
         r.mtd_avg_fat, r.mtd_rate, 
-        (r.mtd||0)==0?0:(r.yoy_growth_pct||0) // Status column fallback
+        (r.mtd||0)==0?0:(r.yoy_growth_pct||0) 
       ], 'tbHpcV');
     } else {
-      hpcs.sort((a,b)=>(b.mtd||0)-(a.mtd||0)); // Default sort
+      hpcs.sort((a,b)=>(b.mtd||0)-(a.mtd||0)); 
     }
   } else {
     var st = _sortState['tbHpcF'];
@@ -1079,7 +1252,7 @@ function renderHpcTable(){
         ];
       }, 'tbHpcF');
     } else {
-      hpcs.sort((a,b)=>(b.mtd_farmers||0)-(a.mtd_farmers||0)); // Default sort
+      hpcs.sort((a,b)=>(b.mtd_farmers||0)-(a.mtd_farmers||0)); 
     }
   }
 
@@ -1087,19 +1260,19 @@ function renderHpcTable(){
   const cntTxt=hpcs.length+' centers';
   const c2=document.getElementById('hpcCnt2'); if(c2) c2.textContent=cntTxt;
 
-  // 4. Pagination
+  // Pagination
   const totalItems = hpcs.length;
   const curPage = TBL_PAGES.hpc;
   const pagedData = hpcs.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE);
 
-  // 5. HTML Rendering
+  // HTML Rendering
   if(_hpcView === 'volume') {
     document.getElementById('tbHpcV').innerHTML=pagedData.map(r=>{
       const cl=(!r.mtd||r.mtd==0)?'tr-red':(r.yoy_growth_pct||0)<-0.3?'tr-red':(r.yoy_growth_pct||0)>=0.3?'tr-green':'';
       const repHtml = (r.hpr_name || r.mobile_no) ? `<div style="margin-top:8px; font-size:10.5px; color:var(--muted); display:flex; align-items:center; gap:6px;"><span>👤 ${r.hpr_name||'N/A'}</span>${r.mobile_no ? `<a href="tel:${r.mobile_no}" style="color:var(--brand);text-decoration:none;background:var(--brand-lt);padding:2px 6px;border-radius:4px;border:1px solid var(--brand-bdr);font-weight:700;" onclick="event.stopPropagation()">📞 ${r.mobile_no}</a>` : ''}</div>` : '';
       
       return`<tr class="${cl}" onclick="openPanel('${r.hpc_plant_key}')">
-        <td><strong>${r.hpc_name||'—'}</strong> <span class="b b-m" style="padding:1px 4px;font-size:9px">${r.milk_type||'N/A'}</span><div class="mono" style="font-size:10px;color:var(--muted)">${r.hpc_plant_key}</div>${repHtml}</td>
+        <td><strong>${r.hpc_name||'—'}</strong> ${r.milk_type ? `<span class="b b-m" style="padding:1px 4px;font-size:9px">${r.milk_type}</span>` : ''}<div class="mono" style="font-size:10px;color:var(--muted)">${r.hpc_plant_key}</div>${repHtml}</td>
         <td>${r.region||'—'}</td><td style="color:var(--muted)">${r.zone||'—'}</td><td><strong>${F.n(r.mtd)}</strong></td><td>${F.n(r.lm)}</td><td>${F.n(r.lymtd)}</td><td>${gb(r.yoy_growth_pct)}</td><td>${gb(r.mom_growth_pct)}</td><td style="color:var(--amber)">${F.f3(r.mtd_avg_fat)}</td><td>₹${F.f2(r.mtd_rate)}</td><td>${spill(r)}</td>
       </tr>`;
     }).join('')||'<tr><td colspan="11" style="text-align:center;padding:28px;color:var(--muted)">No centers match filter</td></tr>';
@@ -1112,7 +1285,7 @@ function renderHpcTable(){
       const repHtml = (r.hpr_name || r.mobile_no) ? `<div style="margin-top:8px; font-size:10.5px; color:var(--muted); display:flex; align-items:center; gap:6px;"><span>👤 ${r.hpr_name||'N/A'}</span>${r.mobile_no ? `<a href="tel:${r.mobile_no}" style="color:var(--brand);text-decoration:none;background:var(--brand-lt);padding:2px 6px;border-radius:4px;border:1px solid var(--brand-bdr);font-weight:700;" onclick="event.stopPropagation()">📞 ${r.mobile_no}</a>` : ''}</div>` : '';
       
       return`<tr onclick="openPanel('${r.hpc_plant_key}')">
-        <td><strong>${r.hpc_name||'—'}</strong> <span class="b b-m" style="padding:1px 4px;font-size:9px">${r.milk_type||'N/A'}</span><div class="mono" style="font-size:10px;color:var(--muted)">${r.hpc_plant_key}</div>${repHtml}</td>
+        <td><strong>${r.hpc_name||'—'}</strong> ${r.milk_type ? `<span class="b b-m" style="padding:1px 4px;font-size:9px">${r.milk_type}</span>` : ''}<div class="mono" style="font-size:10px;color:var(--muted)">${r.hpc_plant_key}</div>${repHtml}</td>
         <td>${r.region||'—'}</td><td style="color:var(--muted)">${r.zone||'—'}</td><td><strong>${F.n(r.mtd_farmers)}</strong></td><td>${F.n(r.lm_farmers)}</td><td><span class="b ${chgCl}">${chg>=0?'+':''}${F.n(chg)}</span></td><td>${fh?F.n(fh.consistent):'—'}</td><td>${fh?(fh.irregular||0)>0?`<span style="color:var(--amber)">${F.n(fh.irregular)}</span>`:'—':'—'}</td><td ${attrCl}>${fh?F.f1(attrPct)+'%':'—'}</td><td>${fh?`<span style="color:var(--green)">+${F.n(fh.acquired)}</span>`:'—'}</td><td>${fh?`<span style="color:var(--red)">-${F.n(fh.churned)}</span>`:'—'}</td><td>${fh?`<span class="pill ${segClass}">${fh.segment}</span>`:'—'}</td>
       </tr>`;
     }).join('')||'<tr><td colspan="12" style="text-align:center;padding:28px;color:var(--muted)">No centers match filter</td></tr>';
@@ -1121,6 +1294,7 @@ function renderHpcTable(){
   document.getElementById('pagHpc').innerHTML = buildPagination(totalItems, 'hpc', 'renderHpcTable');
 }
 
+
 /* FARMERS */
 function renderFarmers(){
   const rfm=filt(D.farmer_rfm||[]);
@@ -1128,15 +1302,29 @@ function renderFarmers(){
 
  // 1. Filter out the 'ghost' data (Dormant & Churned) to get true active numbers
   const activeRfm = rfm.filter(f => f.tier !== 'Dormant' && f.tier !== 'Churned');
+  const totalActiveLpd = sF(activeRfm, 'lpd');
+  const avgFarmerLpd = activeRfm.length ? totalActiveLpd / activeRfm.length : 0;
+  const topProducers = activeRfm.filter(f => f.lpd >= 20).length;
+
+  // document.getElementById('fmrKpis').innerHTML=[
+  //   {icon:'👨‍🌾',ibg:CL.greenlt, l:'Active Farmers',     v:F.n(activeRfm.length),               ctx:'Delivered at least once',            ac:CL.green},
+  //   {icon:'✅', ibg:CL.teallt,  l:'Consistent (≥25d)',  v:F.n(consistent),               ctx:'<span class="b b-g">'+(activeRfm.length?((consistent/activeRfm.length)*100).toFixed(0):0)+'% of active</span>', ac:CL.teal},
+  //   {icon:'⚠️', ibg:CL.redlt,   l:'Irregular (<10d)',   v:F.n(irregular),                   ctx:'<span class="b b-r">Attendance risk</span>',     ac:CL.red},
+  //   {icon:'🧪', ibg:CL.amberlt, l:'Quality Risk',        v:F.n(qrisk),                       ctx:'<span class="b b-a">Low FAT</span>',              ac:CL.amber},
+    
+  //   // 2. Point the Total Payout sum to ONLY the active farmers
+  //   {icon:'💰', ibg:CL.bluelt,  l:'Total Payout',        v:F.cr(sF(activeRfm,'total_payout')),  ctx:'This month (Active Only)', ac:CL.blue},
+  // ].map(h=>`<div class="kpi" style="--k-accent:${h.ac}"><div class="k-icon" style="background:${h.ibg}">${h.icon}</div><div class="k-label">${h.l}</div><div class="k-value">${h.v}</div><div class="k-ctx">${h.ctx}</div></div>`).join('');
+
 
   document.getElementById('fmrKpis').innerHTML=[
     {icon:'👨‍🌾',ibg:CL.greenlt, l:'Active Farmers',     v:F.n(activeRfm.length),               ctx:'Delivered at least once',            ac:CL.green},
     {icon:'✅', ibg:CL.teallt,  l:'Consistent (≥25d)',  v:F.n(consistent),               ctx:'<span class="b b-g">'+(activeRfm.length?((consistent/activeRfm.length)*100).toFixed(0):0)+'% of active</span>', ac:CL.teal},
     {icon:'⚠️', ibg:CL.redlt,   l:'Irregular (<10d)',   v:F.n(irregular),                   ctx:'<span class="b b-r">Attendance risk</span>',     ac:CL.red},
-    {icon:'🧪', ibg:CL.amberlt, l:'Quality Risk',        v:F.n(qrisk),                       ctx:'<span class="b b-a">Low FAT</span>',              ac:CL.amber},
     
-    // 2. Point the Total Payout sum to ONLY the active farmers
-    {icon:'💰', ibg:CL.bluelt,  l:'Total Payout',        v:F.cr(sF(activeRfm,'total_payout')),  ctx:'This month (Active Only)', ac:CL.blue},
+    // --- REPLACED CARDS ---
+    {icon:'📦', ibg:CL.bluelt,  l:'Total Active L/Day', v:F.n(totalActiveLpd),              ctx:'Volume from active farmers',         ac:CL.blue},
+    {icon:'📈', ibg:CL.amberlt, l:'Avg Farmer Yield',   v:F.f1(avgFarmerLpd) + ' LPD',      ctx:`<span class="b b-a">${F.n(topProducers)} top producers (&gt;20 LPD)</span>`, ac:CL.amber},
   ].map(h=>`<div class="kpi" style="--k-accent:${h.ac}"><div class="k-icon" style="background:${h.ibg}">${h.icon}</div><div class="k-label">${h.l}</div><div class="k-value">${h.v}</div><div class="k-ctx">${h.ctx}</div></div>`).join('');
 
   const TIERS=[
@@ -1160,6 +1348,74 @@ function renderFarmers(){
   dc('cRfm'); charts['cRfm']=new Chart(document.getElementById('cRfm').getContext('2d'),{ type:'bar', data:{ labels:TIERS.map(t=>t.icon+' '+t.t), datasets:[ {label:'Farmers',data:TIERS.map(t=>rfm.filter(r=>r.tier===t.t).length),backgroundColor:TIERS.map(t=>t.c+'cc'),borderColor:TIERS.map(t=>t.c),borderWidth:1.5,borderRadius:5,yAxisID:'y'}, {label:'Payout ₹L',data:TIERS.map(t=>Math.round(sF(rfm.filter(r=>r.tier===t.t),'total_payout')/100000)),backgroundColor:'transparent',borderColor:TIERS.map(t=>t.c),borderWidth:2,type:'line',pointRadius:5,pointBackgroundColor:TIERS.map(t=>t.c),yAxisID:'y2'}, ] }, options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'}, plugins:{legend:{display:true,position:'top'}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.04)'},title:{display:true,text:'Farmers'}},y2:{position:'right',grid:{display:false},title:{display:true,text:'Payout ₹L'}}} }});
   const att=[{l:'1–5d',a:1,b:5},{l:'6–10d',a:6,b:10},{l:'11–15d',a:11,b:15},{l:'16–20d',a:16,b:20},{l:'21–25d',a:21,b:25},{l:'26+d',a:26,b:99}]; const ad=att.map(x=>({l:x.l,v:rfm.filter(f=>f.delivery_days>=x.a&&f.delivery_days<=x.b).length}));
   dc('cAtt'); charts['cAtt']=new Chart(document.getElementById('cAtt').getContext('2d'),{ type:'bar',data:{labels:ad.map(r=>r.l),datasets:[{data:ad.map(r=>r.v),backgroundColor:[CL.red,CL.red,CL.amber,CL.amber,CL.green,CL.teal],borderRadius:5}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.04)'}}}} });
+
+
+  // --- NEW: Farmer Volume Buckets Chart ---
+  const buckets = [
+    { label: '< 5 LPD', max: 5, count: 0 },
+    { label: '5 – 10 LPD', max: 10, count: 0 },
+    { label: '10 – 15 LPD', max: 15, count: 0 },
+    { label: '15 – 20 LPD', max: 20, count: 0 },
+    { label: '20 – 30 LPD', max: 30, count: 0 },
+    { label: '30 – 50 LPD', max: 50, count: 0 },
+    { label: '50+ LPD', max: Infinity, count: 0 }
+  ];
+
+  // Bucket the active farmers
+  activeRfm.forEach(f => {
+    const lpd = f.lpd || 0;
+    for (let b of buckets) {
+      if (lpd < b.max) { b.count++; break; }
+    }
+  });
+
+  // dc('cLpdBuckets');
+  dc('cLpdBuckets');
+  charts['cLpdBuckets'] = new Chart(document.getElementById('cLpdBuckets').getContext('2d'), {
+    type: 'bar',
+    plugins: [ChartDataLabels], // <-- 1. Activate the plugin for this chart
+    data: {
+      labels: buckets.map(b => b.label),
+      datasets: [{
+        label: 'Number of Farmers',
+        data: buckets.map(b => b.count),
+        backgroundColor: [
+          CL.red,      // < 5
+          CL.amber,    // 5 - 10
+          CL.blue,     // 10 - 15
+          '#0ea5e9',   // 15 - 20 (Cyan)
+          '#84cc16',   // 20 - 30 (Bright Green)
+          CL.brand,    // 30 - 50 (Standard Green)
+          '#022c22'    // 50+ (Deep Dark Green)
+        ],
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: {
+        padding: { top: 25 } // <-- 2. Add padding so the top numbers don't get cut off
+      },
+      plugins: { 
+        legend: { display: false },
+        datalabels: {        // <-- 3. Configure the labels
+          anchor: 'end',     // Anchor to the top of the bar
+          align: 'top',      // Push the text above the anchor point
+          offset: 4,         // Slight gap between the bar and the number
+          color: '#334155',  // Dark grey text color
+          font: { weight: 'bold', size: 11, family: "'Lato', sans-serif" },
+          formatter: function(value) {
+            // Use your existing F.n() function to add commas (e.g. 39,500)
+            return value > 0 ? F.n(value) : ''; 
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: 'rgba(0,0,0,0.04)' }, beginAtZero: true }
+      }
+    }
+  });
 
   renderFarmerTable();
 }
@@ -1323,8 +1579,13 @@ async function openPanel(key) {
 function closePanel(){document.getElementById('overlay').classList.remove('open');document.getElementById('panel').classList.remove('open');}
 
 /* SORT & SEARCH */
+/* SORT & SEARCH */
 var _sortState = {};
+
 function sortTable(tableId, col){
+  // This line stops the "Event Bubbling" bug immediately without changing HTML
+  if(window.event) window.event.stopPropagation(); 
+  
   var prev = _sortState[tableId] || {col:-1, dir:1}, dir = (prev.col === col) ? -prev.dir : -1;
   _sortState[tableId] = {col:col, dir:dir};
   document.querySelectorAll('[data-tid="'+tableId+'"]').forEach(function(th){
@@ -1337,6 +1598,36 @@ function sortTable(tableId, col){
   else if(tableId==='tbFarmerT') { resetPage('farmers'); renderFarmerTable(); }
   else if(tableId==='tbQlT') { resetPage('quality'); renderQuality(); }
 }
+
+function filterRows(rows, searchId){
+  var q = (document.getElementById(searchId)||{value:''}).value.trim().toLowerCase();
+  if(!q) return rows;
+  return rows.filter(r => Object.values(r).some(v => v !== null && v !== undefined && String(v).toLowerCase().indexOf(q) >= 0));
+}
+
+function sortRowsByCol(rows, cells_fn, tableId){
+  var st = _sortState[tableId]; if(!st || st.col < 0) return rows;
+  var col = st.col, dir = st.dir;
+  return rows.slice().sort((a, b) => {
+    var av = cells_fn(a)[col], bv = cells_fn(b)[col];
+    if (av == null) av = ''; if (bv == null) bv = '';
+    
+    // Clean out currencies, commas, and percentages for accurate math
+    var cleanA = String(av).replace(/[₹%,]/g, '').trim();
+    var cleanB = String(bv).replace(/[₹%,]/g, '').trim();
+    
+    var numA = Number(cleanA), numB = Number(cleanB);
+    
+    // If both fields are real numbers, sort mathematically
+    if (!isNaN(numA) && !isNaN(numB) && cleanA !== '' && cleanB !== '') {
+       return dir * (numA - numB);
+    }
+    
+    // Otherwise, sort alphabetically (with smart numeric detection for "Zone 2" vs "Zone 10")
+    return dir * String(av).localeCompare(String(bv), undefined, {numeric: true});
+  });
+}
+
 
 function filterRows(rows, searchId){
   var q = (document.getElementById(searchId)||{value:''}).value.trim().toLowerCase();
@@ -1379,7 +1670,7 @@ function exportCSV(tableId, filename, renderFnName, stateKey) {
       });
       if(cells.length) rows.push(cells.join(','));
     });
-    var blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+    var blob=new Blob(['\uFEFF' + rows.join('\n')],{type:'text/csv;charset=utf-8;'});
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');
     a.href=url; a.download=filename+'_'+new Date().toISOString().slice(0,10)+'.csv';
@@ -1392,6 +1683,62 @@ function exportCSV(tableId, filename, renderFnName, stateKey) {
     window[renderFnName]();
 }
 
+
+
+/* CUSTOM EXPORT: LPD BUCKETS & FARMER DATA */
+/* CUSTOM EXPORT: LPD BUCKETS & FARMER DATA */
+function exportLpdBuckets() {
+  // Get currently filtered active farmers
+  const activeRfm = filt(D.farmer_rfm || []).filter(f => f.tier !== 'Dormant' && f.tier !== 'Churned');
+
+  // Create a quick lookup map to get HPC Name from the HPC Key
+  const hpcMap = new Map();
+  (D.hpc_list || []).forEach(h => hpcMap.set(h.hpc_plant_key, h.hpc_name || '—'));
+
+  // Define Excel Headers
+  const headers = ['Farmer Code', 'Farmer Name', 'HPC Code', 'HPC Name', 'Region', 'Zone', 'Milk Type', 'Tier', 'Avg LPD', 'Volume Bucket'];
+  let csvContent = headers.map(h => `"${h}"`).join(',') + '\n';
+
+  // Process rows
+  activeRfm.forEach(f => {
+    const lpd = f.lpd || 0;
+    
+    // Updated Bucket Logic
+    let bucketLabel = '50+ LPD';
+    if (lpd < 5) bucketLabel = '< 5 LPD';
+    else if (lpd < 10) bucketLabel = '5 – 10 LPD';
+    else if (lpd < 15) bucketLabel = '10 – 15 LPD';
+    else if (lpd < 20) bucketLabel = '15 – 20 LPD';
+    else if (lpd < 30) bucketLabel = '20 – 30 LPD';
+    else if (lpd < 50) bucketLabel = '30 – 50 LPD';
+
+    const row = [
+      f.farmer_code,
+      f.farmer_name,
+      f.hpc_plant_key,
+      hpcMap.get(f.hpc_plant_key) || '—',
+      f.region,
+      f.zone,
+      f.milk_type || '—',
+      f.tier,
+      f.lpd,
+      bucketLabel
+    ].map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(',');
+
+    csvContent += row + '\n';
+  });
+
+  // Trigger Download
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Farmer_Volume_Buckets_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 /* ═══════════════════════════════════════════════════════════════
    SCORECARD RENDERING LOGIC - ADD THIS ENTIRE FUNCTION
