@@ -570,7 +570,7 @@ table.dt tbody tr.tr-green  td:first-child { border-left: 3px solid var(--green)
     <div class="scr">
       <table class="dt">
         <thead class="sth" data-tid="tbFarmerT" data-col="0" onclick="sortTable('tbFarmerT',0)"><tr>
-          <th>#<span class="sort-arr" id="sa_tbFarmerT_0"></span></th><th class="sth" data-tid="tbFarmerT" data-col="1" onclick="sortTable('tbFarmerT',1)">Farmer<span class="sort-arr" id="sa_tbFarmerT_1"></span></th><th class="sth" data-tid="tbFarmerT" data-col="2" onclick="sortTable('tbFarmerT',2)">Code<span class="sort-arr" id="sa_tbFarmerT_2"></span></th><th class="sth" data-tid="tbFarmerT" data-col="3" onclick="sortTable('tbFarmerT',3)">Center<span class="sort-arr" id="sa_tbFarmerT_3"></span></th><th class="sth" data-tid="tbFarmerT" data-col="4" onclick="sortTable('tbFarmerT',4)">Region<span class="sort-arr" id="sa_tbFarmerT_4"></span></th>
+          <th>#<span class="sort-arr" id="sa_tbFarmerT_0"></span></th><th class="sth" data-tid="tbFarmerT" data-col="1" onclick="sortTable('tbFarmerT',1)">Farmer<span class="sort-arr" id="sa_tbFarmerT_1"></span></th><th class="sth" data-tid="tbFarmerT" data-col="3" onclick="sortTable('tbFarmerT',3)">Center<span class="sort-arr" id="sa_tbFarmerT_3"></span></th><th class="sth" data-tid="tbFarmerT" data-col="4" onclick="sortTable('tbFarmerT',4)">Region<span class="sort-arr" id="sa_tbFarmerT_4"></span></th>
           <th class="sth" data-tid="tbFarmerT" data-col="5" onclick="sortTable('tbFarmerT',5)">Tier<span class="sort-arr" id="sa_tbFarmerT_5"></span></th><th class="sth" data-tid="tbFarmerT" data-col="6" onclick="sortTable('tbFarmerT',6)">LPD<span class="sort-arr" id="sa_tbFarmerT_6"></span></th><th class="sth" data-tid="tbFarmerT" data-col="7" onclick="sortTable('tbFarmerT',7)">Days<span class="sort-arr" id="sa_tbFarmerT_7"></span></th><th class="sth" data-tid="tbFarmerT" data-col="8" onclick="sortTable('tbFarmerT',8)">FAT%<span class="sort-arr" id="sa_tbFarmerT_8"></span></th><th class="sth" data-tid="tbFarmerT" data-col="9" onclick="sortTable('tbFarmerT',9)">Payout ₹<span class="sort-arr" id="sa_tbFarmerT_9"></span></th>
         </tr></thead>
         <tbody id="tbFarmer"></tbody>
@@ -1442,10 +1442,12 @@ function renderFarmerTable(){
   const ICONS={Champion:'🥇',Loyal:'🌱','At Risk':'⚠️',Dormant:'💤',Churned:'🔴'};
   document.getElementById('tbFarmer').innerHTML=pagedData.map((r,i)=>{
     const co=COLS[r.tier]||'#8a7d72', cl=r.tier==='Churned'?'tr-red':r.tier==='At Risk'||r.tier==='Dormant'?'tr-amber':'';
-    return`<tr class="${cl}"><td style="color:var(--muted)">${(curPage-1)*PAGE_SIZE + i + 1}</td><td><strong>${r.farmer_name||'—'}</strong></td><td class="mono" style="font-size:11px;color:var(--muted)">${r.farmer_code}</td><td style="color:var(--ink2)">${r.hpc_plant_key}</td><td>${r.region||'—'}</td><td><span style="background:${co}18;color:${co};padding:4px 10px;border-radius:6px;font-size:11.5px;font-weight:700;border:1px solid ${co}33">${ICONS[r.tier]||''} ${r.tier}</span></td><td>${F.f1(r.lpd)}</td><td>${r.delivery_days||0}<span style="color:var(--muted-lt)">/28</span></td><td style="color:var(--amber);font-weight:600">${F.f3(r.avg_fat)}</td><td><strong>${F.cr(r.total_payout)}</strong></td></tr>`;
+    return`<tr class="${cl}" onclick="openFarmerPanel('${r.farmer_code}')" style="cursor:pointer"><td style="color:var(--muted)">${(curPage-1)*PAGE_SIZE + i + 1}</td><td><strong>${r.farmer_name||'—'}</strong><div style="margin-top:6px;font-size:10.5px;color:var(--muted);display:flex;align-items:center;gap:6px"><span class="mono" style="font-size:10px">${r.farmer_code}</span><span style="opacity:0.3">|</span><span id="phone_${r.farmer_code}" style="color:var(--muted-lt);font-size:10px">⏳</span></div></td><td style="color:var(--ink2)">${r.hpc_plant_key}</td><td>${r.region||'—'}</td><td><span style="background:${co}18;color:${co};padding:4px 10px;border-radius:6px;font-size:11.5px;font-weight:700;border:1px solid ${co}33">${ICONS[r.tier]||''} ${r.tier}</span></td><td>${F.f1(r.lpd)}</td><td>${r.delivery_days||0}<span style="color:var(--muted-lt)">/28</span></td><td style="color:var(--amber);font-weight:600">${F.f3(r.avg_fat)}</td><td><strong>${F.cr(r.total_payout)}</strong></td></tr>`;
   }).join('')||'<tr><td colspan="10" style="text-align:center;padding:28px;color:var(--muted)">No farmers match filter</td></tr>';
 
   document.getElementById('pagFarmers').innerHTML = buildPagination(totalItems, 'farmers', 'renderFarmerTable');
+// Auto-fetch phones for visible rows
+pagedData.forEach(r => fetchFarmerPhone(r.farmer_code));
 }
 
 /* QUALITY */
@@ -1998,7 +2000,164 @@ async function renderScorecard() {
   }
 }
 
+async function fetchFarmerPhone(vendorCode) {
+  const el = document.getElementById('phone_' + vendorCode);
+  if (!el || el.dataset.loaded) return;
+  el.dataset.loaded = '1';
+  try {
+    const res = await fetch('/api/farmer/contact?vendor_code=' + encodeURIComponent(vendorCode));
+    const data = await res.json();
+    if (data.phone) {
+      el.outerHTML = `<a href="tel:${data.phone}" style="color:var(--brand);text-decoration:none;background:var(--brand-lt);padding:2px 8px;border-radius:4px;border:1px solid var(--brand-bdr);font-weight:700;font-family:var(--font-head);font-size:10.5px;display:inline-flex;align-items:center;gap:4px;" onclick="event.stopPropagation()">📞 ${data.phone}</a>`;
+    } else {
+      el.textContent = 'No phone';
+      el.style.opacity = '0.4';
+      el.style.cursor = 'default';
+    }
+  } catch(e) {
+    el.textContent = '⚠ Error';
+    el.style.color = 'var(--red)';
+  }
+}
 
+async function openFarmerPanel(farmerCode) {
+  // Find farmer data from bootstrap
+  const r = (D.farmer_rfm || []).find(f => f.farmer_code === farmerCode);
+  if (!r) return;
+
+  // Reuse the same overlay + panel
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('panel').classList.add('open');
+
+  const COLS = {Champion:CL.teal, Loyal:CL.green, 'At Risk':CL.amber, Dormant:'#8a7d72', Churned:CL.red};
+  const ICONS = {Champion:'🥇', Loyal:'🌱', 'At Risk':'⚠️', Dormant:'💤', Churned:'🔴'};
+  const co = COLS[r.tier] || '#8a7d72';
+
+  // Header
+  document.getElementById('pName').textContent = r.farmer_name || farmerCode;
+  document.getElementById('pMeta').innerHTML = `
+    ${r.hpc_plant_key || '—'} · ${r.region || '—'} · ${r.zone || '—'}
+    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span style="background:${co}33;color:${co};padding:4px 12px;border-radius:20px;font-weight:700;font-size:12px;border:1px solid ${co}55">
+        ${ICONS[r.tier]||''} ${r.tier}
+      </span>
+      <span id="fPanel_phone" style="color:rgba(255,255,255,.6);font-size:11px">📞 Loading...</span>
+    </div>`;
+
+  // Body — show instant data from bootstrap while trend loads
+  document.getElementById('pBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px">
+      ${[
+        {l:'LPD',      v:F.f1(r.lpd),           c:'var(--brand)'},
+        {l:'Days',     v:(r.delivery_days||0)+'/28', c:'var(--ink)'},
+        {l:'FAT%',     v:F.f3(r.avg_fat),        c:'var(--amber)'},
+        {l:'Payout',   v:F.cr(r.total_payout),   c:'var(--ink)'},
+        {l:'Milk',     v:r.milk_type||'—',        c:'var(--ink2)'},
+        {l:'Volume',   v:F.n(r.total_qty_ltr)+' L', c:'var(--ink2)'},
+      ].map(k=>`
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px">
+          <div style="font-family:var(--font-head);font-size:20px;font-weight:800;color:${k.c}">${k.v}</div>
+          <div style="font-family:var(--font-head);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-top:6px">${k.l}</div>
+        </div>`).join('')}
+    </div>
+
+    <div style="margin-bottom:24px">
+      <div style="font-family:var(--font-head);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+        6-Month Trend
+      </div>
+      <div style="height:160px"><canvas id="pFarmerTrend"></canvas></div>
+    </div>
+
+    <div id="pFarmerMonths">
+      <div class="loading"><div class="spin"></div></div>
+    </div>`;
+
+  // Fetch detail + phone in parallel
+  try {
+    const res = await fetch('/api/farmer/detail?farmer_code=' + encodeURIComponent(farmerCode));
+    const data = await res.json();
+    const trend = (data.trend || []).reverse(); // oldest first for chart
+
+    // Update phone
+    const phoneEl = document.getElementById('fPanel_phone');
+    if (phoneEl) {
+      phoneEl.innerHTML = data.phone
+        ? `<a href="tel:${data.phone}" style="color:#fff;text-decoration:none;background:rgba(255,255,255,.15);padding:3px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.25)">📞 ${data.phone}</a>`
+        : `<span style="opacity:.4">No phone on record</span>`;
+    }
+
+    // Trend chart
+    dc('pFarmerTrend');
+    const MONTHS_S = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    charts['pFarmerTrend'] = new Chart(
+      document.getElementById('pFarmerTrend').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: trend.map(r => MONTHS_S[r.mth-1] + ' \'' + String(r.yr).slice(2)),
+          datasets: [
+            {
+              label: 'LPD',
+              data: trend.map(r => r.lpd),
+              backgroundColor: 'rgba(45,168,70,.2)',
+              borderColor: '#2DA846',
+              borderWidth: 2,
+              borderRadius: 4,
+              yAxisID: 'y'
+            },
+            {
+              label: 'FAT%',
+              data: trend.map(r => r.avg_fat),
+              type: 'line',
+              borderColor: CL.amber,
+              borderWidth: 2,
+              pointRadius: 4,
+              pointBackgroundColor: CL.amber,
+              fill: false,
+              tension: .3,
+              yAxisID: 'y2'
+            }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: {intersect: false, mode: 'index'},
+          plugins: {legend: {display: true, position: 'top'}},
+          scales: {
+            x: {grid: {display: false}},
+            y: {grid: {color: 'rgba(0,0,0,0.04)'}, title: {display: true, text: 'LPD'}},
+            y2: {position: 'right', grid: {display: false}, title: {display: true, text: 'FAT%'}}
+          }
+        }
+    });
+
+    // Month table
+    document.getElementById('pFarmerMonths').innerHTML = `
+      <div style="font-family:var(--font-head);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+        Month-wise Breakdown
+      </div>
+      <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden">
+        <table class="dt">
+          <thead><tr>
+            <th>Month</th><th>LPD</th><th>Days</th><th>FAT%</th><th>Payout</th>
+          </tr></thead>
+          <tbody>
+            ${trend.slice().reverse().map(r => `
+              <tr>
+                <td><strong>${MONTHS_S[r.mth-1]} ${r.yr}</strong></td>
+                <td>${F.f1(r.lpd)}</td>
+                <td>${r.delivery_days}<span style="color:var(--muted-lt)">/${r.days_in_month}</span></td>
+                <td style="color:var(--amber)">${F.f3(r.avg_fat)}</td>
+                <td>${F.cr(r.payout)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+
+  } catch(e) {
+    document.getElementById('pFarmerMonths').innerHTML =
+      '<div style="color:var(--red);padding:20px">Error loading farmer details.</div>';
+  }
+}
 
 
 async function boot(){

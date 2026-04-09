@@ -278,8 +278,8 @@ def  _build_cache():
                 SUM(mtd_farmers)   AS total_farmers,
                 SUM(lm_farmers)    AS lm_farmers,
                 SUM(mtd_payout)    AS total_payout,
-                COUNT(DISTINCT hpc_plant_key) AS total_hpcs,   -- snapshot is now 1-row-per-HPC; DISTINCT guards against any future milk_type rows
-                SUM(CASE WHEN mtd=0 THEN 1 ELSE 0 END) AS dark_hpcs,
+                SUM(CASE WHEN mtd>0 OR lm>0 THEN 1 ELSE 0 END) AS total_hpcs,
+                SUM(CASE WHEN mtd=0 AND lm>0 THEN 1 ELSE 0 END) AS dark_hpcs,
                 SUM(CASE WHEN yoy_growth_pct < -0.2 AND mtd>0 THEN 1 ELSE 0 END) AS critical_hpcs,
                 SUM(CASE WHEN yoy_growth_pct>=-0.2 AND yoy_growth_pct<0 AND mtd>0
                     THEN 1 ELSE 0 END) AS declining_hpcs,
@@ -331,7 +331,7 @@ def  _build_cache():
             "lmtd":           round(lmtd,  0),
             "lymtd":          round(lymtd, 0),
             "yoy_pct": round((sum(z['mtd'] for z in zone_summary) - sum(z['lymtd'] for z in zone_summary)) / sum(z['lymtd'] for z in zone_summary) * 100, 1) if sum(z['lymtd'] for z in zone_summary) else 0,
-            "mom_pct":        round((mtd - lmtd)  / lmtd  * 100, 1) if lmtd  else 0,
+            "mom_pct": round((mtd - (snap_row["lm"] or 0)) / (snap_row["lm"] or 1) * 100, 1) if snap_row["lm"] else 0,
             "total_farmers":  int(conn.execute(
                 "SELECT COUNT(DISTINCT farmer_code) FROM proc_monthly_farmer "
                 "WHERE yr=(SELECT MAX(yr) FROM proc_monthly_farmer) "
@@ -746,12 +746,12 @@ def _recompute_snapshot(hpcs, mhpc, base_snap):
         "lmtd":           round(lmtd,  0),
         "lymtd":          round(lymtd, 0),
         "yoy_pct": round((mtd - lymtd) / lymtd * 100, 1) if lymtd else 0,
-        "mom_pct":        round((mtd - lmtd)  / lmtd  * 100, 1) if lmtd  else 0,
+        "mom_pct": round((mtd - lm) / lm * 100, 1) if lm else 0,
         "total_farmers":  int(sum(h.get("mtd_farmers", 0) or 0 for h in hpcs)),
         "lm_farmers":     int(sum(h.get("lm_farmers",  0) or 0 for h in hpcs)),
         "total_payout":   round(pay, 0),
-        "total_hpcs":     len({h.get("hpc_plant_key") for h in hpcs}),   # distinct HPCs, not list rows
-        "dark_hpcs":      len({h.get("hpc_plant_key") for h in hpcs if not h.get("mtd")}),
+        "dark_hpcs":  len({h.get("hpc_plant_key") for h in hpcs if not h.get("mtd") and h.get("lm")}),
+        "total_hpcs": len({h.get("hpc_plant_key") for h in hpcs if h.get("mtd") or h.get("lm")}),
         "star_hpcs":      len([h for h in hpcs if (h.get("yoy_growth_pct") or 0) >= 0.3 and h.get("mtd")]),
         "critical_hpcs":  len([h for h in hpcs if (h.get("yoy_growth_pct") or 0) < -0.2 and h.get("mtd")]),
         "declining_hpcs": len([h for h in hpcs if -0.2 <= (h.get("yoy_growth_pct") or 0) < 0 and h.get("mtd")]),
@@ -1012,6 +1012,61 @@ def hpc_detail():
         "daily":       [dict(r) for r in daily],
         "top_farmers": [dict(r) for r in top],
     })
+
+
+
+@app.route("/api/farmer/detail")
+@login_required
+@analytics_required
+def farmer_detail():
+    farmer_code = request.args.get("farmer_code", "").strip()
+    if not farmer_code:
+        return jsonify({"error": "farmer_code required"}), 400
+
+    conn = get_db()
+
+    # Last 6 months trend from SQLite — fast, indexed
+    trend = conn.execute("""
+        SELECT yr, mth, 
+               ROUND(total_qty_ltr,0)    AS total_ltr,
+               ROUND(lpd,1)              AS lpd,
+               delivery_days,
+               days_in_month,
+               ROUND(avg_fat,3)          AS avg_fat,
+               ROUND(total_net_price,0)  AS payout,
+               hpc_plant_key,
+               milk_type
+        FROM proc_monthly_farmer
+        WHERE farmer_code = ?
+          AND farmer_code_seq != '9999'
+        ORDER BY yr DESC, mth DESC
+        LIMIT 6
+    """, (farmer_code,)).fetchall()
+
+    conn.close()
+
+    # Phone from SQL Server — runs in parallel via thread
+    phone = None
+    try:
+        import pyodbc
+        from pipeline import SQL_CONN_STR
+        sql_conn = pyodbc.connect(SQL_CONN_STR, timeout=5)
+        row = sql_conn.execute("""
+            SELECT TOP 1 [Telephone]
+            FROM [HeritageIT].[P&I].[Farmer_Master]
+            WHERE CAST([Vendor_Code] AS VARCHAR(20)) = ?
+        """, (farmer_code,)).fetchone()
+        sql_conn.close()
+        if row:
+            phone = row[0]
+    except Exception as e:
+        log.warning(f"farmer_detail phone lookup failed: {e}")
+
+    return jsonify({
+        "trend": [dict(r) for r in trend],
+        "phone": phone,
+    })
+
 
 
 
@@ -1332,6 +1387,46 @@ def update_hpc_contact(hpc_key):
     return jsonify({"ok": True})
 
 
+#Farmer Contact----------------------------------------------------------
+
+@app.route("/api/farmer/contact")
+@login_required
+@analytics_required
+def farmer_contact():
+    vendor_code = request.args.get("vendor_code", "").strip()
+    if not vendor_code:
+        return jsonify({"error": "vendor_code required"}), 400
+
+    try:
+        import pyodbc
+        sql_conn = pyodbc.connect(
+            "Driver={ODBC Driver 17 for SQL Server};"
+            "Server=10.0.1.71,4000;"
+            "Database=HeritageIT;"
+            "UID=127903;"
+            "PWD=Raghavkumar.j@heritagefoods.in;",
+            timeout=5
+        )
+        row = sql_conn.execute("""
+            SELECT TOP 1
+                CAST([Vendor_Code] AS VARCHAR(20)) AS vendor_code,
+                [Telephone]                         AS phone
+            FROM [HeritageIT].[P&I].[Farmer_Master]
+            WHERE CAST([Vendor_Code] AS VARCHAR(20)) = ?
+        """, (vendor_code,)).fetchone()
+        sql_conn.close()
+
+        if not row:
+            return jsonify({"vendor_code": vendor_code, "phone": None})
+
+        return jsonify({
+            "vendor_code": row[0],
+            "phone":       row[1],
+        })
+
+    except Exception as e:
+        log.error(f"farmer_contact lookup failed: {e}")
+        return jsonify({"error": "Could not fetch contact"}), 500
 
 
 # ── SCORECARD HISTORY — add this route to app.py ─────────────────────────────
@@ -1375,7 +1470,7 @@ def scorecard_history():
     lm_mth = curr_mth - 1 if curr_mth > 1 else 12
     ly_yr, ly_mth = curr_yr - 1, curr_mth
 
-    # ── scope WHERE fragment ──────────────────────────────────────────────────
+ 
     # ── scope WHERE fragment ──────────────────────────────────────────────────
     scope_clauses, scope_params = [], []
     if f.get("zone"):
@@ -1399,7 +1494,7 @@ def scorecard_history():
 
     scope_and = ("AND " + " AND ".join(scope_clauses)) if scope_clauses else ""
 
-    # ── FAST SQL AGGREGATOR ───────────────────────────────────────────────────
+
     # ── FAST SQL AGGREGATOR ───────────────────────────────────────────────────
     def fetch_metrics(yr, mth):
         # 1. Do all math in SQL instead of looping in Python
@@ -1649,7 +1744,7 @@ if __name__ == "__main__":
     _ensure_tables(conn)
     _ensure_indexes(conn)
     _ensure_default_admin(conn)
-    _ensure_targets_table(conn)  # ← Add this line
+    _ensure_targets_table(conn)  
     conn.close()
     _build_cache_bg()
     app.run(debug=True, port=5000, threaded=True)
